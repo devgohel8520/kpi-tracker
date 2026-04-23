@@ -83,12 +83,7 @@ tailwind.config={
     const remember = document.getElementById('remember').checked;
 
     try {
-      const result = await App.login(email, password, remember);
-      if (!result.success) {
-        errorEl.textContent = result.error;
-        errorEl.classList.remove('hidden');
-        return;
-      }
+      await App.login(email, password, remember);
       toast('Welcome back!');
       setTimeout(() => { window.location.href = 'app.html'; }, 500);
     } catch (err) {

@@ -79,12 +79,7 @@ tailwind.config={
     }
 
     try {
-      const result = await App.signup(name, email, password);
-      if (!result.success) {
-        errorEl.textContent = result.error;
-        errorEl.classList.remove('hidden');
-        return;
-      }
+      await App.signup(name, email, password);
       toast('Account created successfully!');
       setTimeout(() => { window.location.href = 'app.html'; }, 500);
     } catch (err) {
