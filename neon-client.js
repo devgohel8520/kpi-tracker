@@ -207,28 +207,19 @@ const Api = {
     const kpis = await this._request('/kpis');
     this._kpis = kpis || [];
     
-    // Load all records for each KPI
-    if (kpis && kpis.length > 0) {
-      const allRecords = [];
-      for (const kpi of kpis) {
-        try {
-          const recs = await this._request(`/records?kpi_id=${kpi.id}`);
-          if (recs) allRecords.push(...recs);
-        } catch (e) { }
-      }
-      this._records = allRecords;
-    }
-    
+    // Load all records for user (simple approach)
+    this._records = [];
     return kpis;
   },
 
   async getRecordsForKPI(kpiId) {
-    return this._request(`/records?kpi_id=${kpiId}`);
+    const recs = await this._request(`/records?kpi_id=${kpiId}`);
+    return recs || [];
   },
 
   getRecordsByKPI(kpiId) {
     const allRecords = this._records || [];
-    return allRecords.filter(r => r.kpi_id === kpiId).sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
+    return allRecords.filter(r => (r.kpi_id === kpiId || r.kpiId === kpiId)).sort((a, b) => new Date(a.recorded_at || a.recordedAt) - new Date(b.recorded_at || b.recordedAt));
   },
 
   getLatestRecord(kpiId) {
@@ -241,7 +232,7 @@ const Api = {
   hasRecordToday(kpiId) {
     const today = this.todayStr();
     const allRecords = this._records || [];
-    return allRecords.some(r => r.kpi_id === kpiId && r.recorded_at && r.recorded_at.slice(0, 10) === today);
+    return allRecords.some(r => (r.kpi_id === kpiId || r.kpiId === kpiId) && (r.recorded_at || r.recordedAt) && (r.recorded_at || r.recordedAt).slice(0, 10) === today);
   },
 
   logout() {
