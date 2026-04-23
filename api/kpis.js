@@ -27,16 +27,13 @@ export default async function handler(req, res) {
         name: r.name,
         description: r.description || '',
         target: r.target || 0,
-        unit: r.unit || '',
-        frequency: r.frequency || 'daily',
-        color: r.color || '#3b82f6',
-        dataType: r.data_type || 'number',
-        hasTarget: r.has_target || false,
-        hasRemarks: r.has_remarks || false,
-        repeatOn: r.repeat_on || 'daily',
-        repeatDay: r.repeat_day,
-        isActive: r.is_active !== false,
-        createdAt: r.created_at
+        data_type: r.data_type || 'number',
+        has_target: r.has_target || false,
+        has_remarks: r.has_remarks || false,
+        repeat_on: r.repeat_on || 'daily',
+        repeat_day: r.repeat_day,
+        is_active: r.is_active !== false,
+        created_at: r.created_at
       }));
       res.json(rows);
     } catch (error) {
@@ -46,24 +43,17 @@ export default async function handler(req, res) {
   } 
   
   else if (req.method === 'POST') {
-    const { name, title, description, target, unit, frequency, color, dataType, hasTarget, hasRemarks, repeatOn, repeatDay } = req.body;
+    const { name, title, description, target, dataType, hasTarget, hasRemarks, repeatOn, repeatDay } = req.body;
     const kpiName = name || title;
     if (!kpiName) {
       return res.status(400).json({ error: 'Name required' });
     }
     try {
       const result = await pool.query(
-        'INSERT INTO kpis (user_id, name, description, target, unit, frequency, color) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [userId, kpiName, description || '', target || 0, unit || '', frequency || 'daily', color || '#3b82f6']
+        'INSERT INTO kpis (user_id, name, description, target, data_type, has_target, has_remarks) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [userId, kpiName, description || '', target || 0, dataType || 'number', hasTarget || false, hasRemarks || false]
       );
-      const row = result.rows[0];
-      row.dataType = dataType || 'number';
-      row.hasTarget = hasTarget || false;
-      row.hasRemarks = hasRemarks || false;
-      row.repeatOn = repeatOn || 'daily';
-      row.repeatDay = repeatDay || null;
-      row.isActive = true;
-      res.status(201).json(row);
+      res.status(201).json(result.rows[0]);
     } catch (error) {
       console.error('KPI POST error:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -71,15 +61,14 @@ export default async function handler(req, res) {
   }
   
   else if (req.method === 'PUT') {
-    const { id, name, title, description, target, unit, frequency, color } = req.body;
+    const { id, name, title, description, target, dataType, hasTarget, hasRemarks } = req.body;
     if (!id) {
       return res.status(400).json({ error: 'ID required' });
     }
     try {
-      const kpiName = name || title;
       const result = await pool.query(
-        'UPDATE kpis SET name = $1, description = $2, target = COALESCE($3, target), unit = COALESCE($4, unit), frequency = COALESCE($5, frequency), color = COALESCE($6, color) WHERE id = $7 AND user_id = $8 RETURNING *',
-        [kpiName, description || '', target, unit, frequency, color, id, userId]
+        'UPDATE kpis SET name = $1, description = $2, target = $3, data_type = $4, has_target = $5, has_remarks = $6 WHERE id = $7 AND user_id = $8 RETURNING *',
+        [name || title, description || '', target || 0, dataType || 'number', hasTarget || false, hasRemarks || false, id, userId]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'KPI not found' });
