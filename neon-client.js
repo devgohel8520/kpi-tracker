@@ -52,12 +52,12 @@ const Api = {
       name: k.name,
       description: k.description || '',
       dataType: k.data_type || k.dataType || 'number',
-      hasTarget: k.has_target ?? k.hasTarget ?? false,
-      target: k.target ?? 0,
+      hasTarget: k.has_target || k.hasTarget || false,
+      target: k.target || 0,
       repeatOn: k.repeat_on || k.repeatOn || 'daily',
       repeatDay: k.repeat_day || k.repeatDay,
       isActive: k.is_active !== false && k.isActive !== false,
-      hasRemarks: k.has_remarks ?? k.hasRemarks ?? false,
+      hasRemarks: k.has_remarks || k.hasRemarks || false,
       createdAt: k.created_at || k.createdAt
     }));
     
