@@ -101,6 +101,7 @@ const Api = {
       body: JSON.stringify({ name, email, password })
     });
 
+    localStorage.setItem('kpit_token', data.token);
     localStorage.setItem('kpit_user_id', data.user.id);
     localStorage.setItem('kpit_user_name', data.user.name);
     localStorage.setItem('kpit_user_email', data.user.email);

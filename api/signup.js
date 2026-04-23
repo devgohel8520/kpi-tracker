@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const crypto = require('crypto');
 
 export default async function handler(req, res) {
   if (!process.env.DATABASE_URL) {
@@ -21,7 +22,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    const crypto = require('crypto');
     const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
     
     const result = await pool.query(
@@ -29,7 +29,18 @@ export default async function handler(req, res) {
       [email, hashedPassword, name || email.split('@')[0]]
     );
 
-    res.status(201).json({ user: result.rows[0] });
+    const user = result.rows[0];
+    const token = crypto.randomBytes(32).toString('hex');
+    
+    await pool.query(
+      'INSERT INTO sessions (user_id, token) VALUES ($1, $2)',
+      [user.id, token]
+    );
+
+    res.status(201).json({ 
+      token, 
+      user: { id: user.id, email: user.email, name: user.name } 
+    });
   } catch (error) {
     if (error.code === '23505') {
       return res.status(400).json({ error: 'Email already exists' });

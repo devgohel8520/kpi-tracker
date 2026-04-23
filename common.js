@@ -44,7 +44,8 @@ const App = {
     const id = localStorage.getItem('kpit_user_id');
     const name = localStorage.getItem('kpit_user_name');
     const email = localStorage.getItem('kpit_user_email');
-    return id ? { id, name, email } : null;
+    const token = localStorage.getItem('kpit_token');
+    return id && token ? { id, name, email } : null;
   },
   get rememberedEmail() { return localStorage.getItem('kpit_rememberEmail') || ''; },
 
@@ -54,16 +55,11 @@ const App = {
   async loadAll() {
     if (!this.currentUser) return;
     try {
-      const [kpis, records] = await Promise.all([
-        api('/kpis'),
-        api('/records/all')
-      ]);
-      this.kpis = kpis;
-      this.records = records || [];
+      const kpis = await window.App.loadAll();
+      this.kpis = kpis || [];
     } catch (err) {
       console.error('Failed to load data:', err);
       this.kpis = [];
-      this.records = [];
     }
   },
 
@@ -80,15 +76,14 @@ const App = {
 
   async saveKPI(data) {
     try {
-      if (data.id && this.kpis.find(k => k.id === data.id)) {
-        const result = await api(`/kpis/${data.id}`, { method: 'PUT', body: JSON.stringify(data) });
-        this.updateKPI(data.id, result);
-        return result;
+      const result = await window.App.saveKPI(data);
+      const existing = this._kpis.findIndex(k => k.id === result.id);
+      if (existing >= 0) {
+        this._kpis[existing] = result;
       } else {
-        const result = await api('/kpis', { method: 'POST', body: JSON.stringify(data) });
-        this.kpis = [...this.kpis, result];
-        return result;
+        this._kpis = [...this._kpis, result];
       }
+      return result;
     } catch (err) {
       console.error('Failed to save KPI:', err);
       throw err;
@@ -97,9 +92,9 @@ const App = {
 
   async deleteKPI(id) {
     try {
-      await api(`/kpis/${id}`, { method: 'DELETE' });
+      await window.App.deleteKPI(id);
       this.kpis = this.kpis.filter(k => k.id !== id);
-      this.records = this.records.filter(r => r.kpiId !== id);
+      this.records = this.records.filter(r => r.kpi_id !== id);
     } catch (err) {
       console.error('Failed to delete KPI:', err);
       throw err;
@@ -114,7 +109,7 @@ const App = {
 
   async saveRecord(data) {
     try {
-      const result = await api('/records', { method: 'POST', body: JSON.stringify(data) });
+      const result = await window.App.saveRecord(data);
       this.records = [...this.records, result];
       return result;
     } catch (err) {
@@ -125,7 +120,7 @@ const App = {
 
   async deleteRecord(id) {
     try {
-      await api(`/records/${id}`, { method: 'DELETE' });
+      await window.App.deleteRecord(id);
       this.records = this.records.filter(r => r.id !== id);
     } catch (err) {
       console.error('Failed to delete record:', err);
@@ -136,7 +131,7 @@ const App = {
   getKPIById(id) { return this.kpis.find(k => k.id === id); },
 
   getRecordsByKPI(id) {
-    return this.records.filter(r => r.kpiId === id).sort((a, b) => new Date(a.date) - new Date(b.date));
+    return this.records.filter(r => r.kpi_id === id).sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
   },
 
   getLatestRecord(id) {
@@ -147,7 +142,7 @@ const App = {
   todayStr() { return new Date().toISOString().slice(0, 10); },
 
   hasRecordToday(kpiId) {
-    return this.records.some(r => r.kpiId === kpiId && r.date === this.todayStr());
+    return this.records.some(r => r.kpi_id === kpiId && r.recorded_at && r.recorded_at.slice(0, 10) === this.todayStr());
   },
 
   async signup(name, email, password) {
