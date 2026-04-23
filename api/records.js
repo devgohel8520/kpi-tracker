@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     const { kpi_id } = req.query;
     try {
       const result = await pool.query(
-        `SELECT r.*, k.name as kpi_name 
+        `SELECT r.id, r.user_id, r.kpi_id, r.value, r.recorded_at as "recordedAt", r.remarks, k.name as "kpiName" 
          FROM records r 
          JOIN kpis k ON r.kpi_id = k.id 
          WHERE r.user_id = $1 AND r.kpi_id = $2 
@@ -34,14 +34,15 @@ export default async function handler(req, res) {
   }
   
   else if (req.method === 'POST') {
-    const { kpi_id, value, recorded_at } = req.body;
-    if (!kpi_id || value === undefined) {
+    const { kpi_id, kpiId, value, recorded_at, date, remarks } = req.body;
+    const kpi = kpi_id || kpiId;
+    if (!kpi || value === undefined) {
       return res.status(400).json({ error: 'kpi_id and value required' });
     }
     try {
       const result = await pool.query(
-        'INSERT INTO records (user_id, kpi_id, value, recorded_at) VALUES ($1, $2, $3, $4) RETURNING *',
-        [userId, kpi_id, value, recorded_at || new Date()]
+        'INSERT INTO records (user_id, kpi_id, value, recorded_at, remarks) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [userId, kpi, value, recorded_at || date || new Date(), remarks || '']
       );
       res.status(201).json(result.rows[0]);
     } catch (error) {
