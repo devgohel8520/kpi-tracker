@@ -18,10 +18,26 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const result = await pool.query(
-        'SELECT id, user_id, name, COALESCE(target, 0) as target, COALESCE(unit, \'\') as unit, COALESCE(frequency, \'daily\') as frequency, COALESCE(color, \'#3b82f6\') as color, COALESCE(data_type, \'number\') as "dataType", COALESCE(has_target, false) as "hasTarget", COALESCE(has_remarks, false) as "hasRemarks", COALESCE(repeat_on, \'daily\') as "repeatOn", repeat_day as "repeatDay", COALESCE(is_active, true) as "isActive", created_at as "createdAt" FROM kpis WHERE user_id = $1 ORDER BY created_at DESC',
+        'SELECT * FROM kpis WHERE user_id = $1 ORDER BY created_at DESC',
         [userId]
       );
-      res.json(result.rows);
+      const rows = result.rows.map(r => ({
+        id: r.id,
+        user_id: r.user_id,
+        name: r.name,
+        target: r.target || 0,
+        unit: r.unit || '',
+        frequency: r.frequency || 'daily',
+        color: r.color || '#3b82f6',
+        dataType: r.data_type || 'number',
+        hasTarget: r.has_target || false,
+        hasRemarks: r.has_remarks || false,
+        repeatOn: r.repeat_on || 'daily',
+        repeatDay: r.repeat_day,
+        isActive: r.is_active !== false,
+        createdAt: r.created_at
+      }));
+      res.json(rows);
     } catch (error) {
       console.error('KPI GET error:', error);
       res.status(500).json({ error: 'Internal server error' });
