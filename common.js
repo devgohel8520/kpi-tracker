@@ -1,23 +1,26 @@
 // Bridge neon-client to app.html
-const App = window.App || {
-  get kpis() { return [] },
-  set kpis(v) { },
-  get records() { return [] },
-  set records(v) { },
-  get currentUser() { return null },
-  get rememberedEmail() { return '' },
-  loadAll() { return Promise.resolve([]); },
-  saveKPI(data) { return Promise.resolve(data); },
-  deleteKPI(id) { return Promise.resolve(); },
-  saveRecord(data) { return Promise.resolve(data); },
-  deleteRecord(id) { return Promise.resolve(); },
-  getKPIById(id) { return null; },
-  getRecordsByKPI(id) { return []; },
-  getLatestRecord(id) { return null; },
-  todayStr() { return new Date().toISOString().slice(0, 10); },
-  hasRecordToday(kpiId) { return false; },
-  logout() { window.location.href = 'index.html'; }
-};
+// Already defined in neon-client.js, just ensure window.App exists
+if (typeof window.App === 'undefined') {
+  window.App = {
+    get kpis() { return [] },
+    set kpis(v) { },
+    get records() { return [] },
+    set records(v) { },
+    get currentUser() { return null },
+    get rememberedEmail() { return '' },
+    loadAll() { return Promise.resolve([]); },
+    saveKPI(data) { return Promise.resolve(data); },
+    deleteKPI(id) { return Promise.resolve(); },
+    saveRecord(data) { return Promise.resolve(data); },
+    deleteRecord(id) { return Promise.resolve(); },
+    getKPIById(id) { return null; },
+    getRecordsByKPI(id) { return []; },
+    getLatestRecord(id) { return null; },
+    todayStr() { return new Date().toISOString().slice(0, 10); },
+    hasRecordToday(kpiId) { return false; },
+    logout() { window.location.href = 'index.html'; }
+  };
+}
 
 // ─────────────────────────────────────────────────────
 //  UTILITY
