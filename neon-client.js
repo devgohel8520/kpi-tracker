@@ -48,20 +48,25 @@ const Api = {
 
   async loadAll() {
     const kpis = await this._request('/kpis');
-    this._kpis = kpis || [];
+    // Map API fields to client expected fields
+    this._kpis = (kpis || []).map(k => ({
+      id: k.id,
+      title: k.name || k.title,
+      name: k.name,
+      description: '',
+      dataType: k.data_type || k.dataType || 'number',
+      hasTarget: k.has_target || k.hasTarget || false,
+      target: k.target || 0,
+      repeatOn: k.repeat_on || k.repeatOn || 'daily',
+      repeatDay: k.repeat_day || k.repeatDay,
+      isActive: k.is_active !== false && k.isActive !== false,
+      hasRemarks: k.has_remarks || k.hasRemarks || false,
+      createdAt: k.created_at || k.createdAt
+    }));
     
     // Load all records
-    const allRecords = [];
-    if (kpis && kpis.length > 0) {
-      for (const kpi of kpis) {
-        try {
-          const recs = await this._request(`/records?kpi_id=${kpi.id}`);
-          if (recs) allRecords.push(...recs);
-        } catch (e) { }
-      }
-    }
-    this._records = allRecords;
-    return kpis;
+    this._records = [];
+    return this._kpis;
   },
 
   // For app.html compatibility
@@ -112,15 +117,26 @@ const Api = {
   },
 
   async saveRecord(data) {
+    const recData = {
+      kpi_id: data.kpiId || data.kpi_id,
+      value: data.value,
+      recorded_at: data.date || data.recorded_at,
+      remarks: data.remarks || ''
+    };
     return this._request('/records', {
       method: 'POST',
-      body: JSON.stringify({
-        kpi_id: data.kpiId || data.kpi_id,
-        value: data.value,
-        recorded_at: data.date || data.recorded_at
-      })
+      body: JSON.stringify(recData)
     }).then(result => {
-      if (result) this._records.push(result);
+      if (result) {
+        this._records.push({
+          id: result.id,
+          kpiId: result.kpi_id,
+          value: result.value,
+          date: result.recorded_at?.slice(0, 10),
+          recordedAt: result.recorded_at,
+          remarks: result.remarks
+        });
+      }
       return result;
     });
   },
@@ -205,11 +221,25 @@ const Api = {
   // Helper methods for app.html
   async loadAll() {
     const kpis = await this._request('/kpis');
-    this._kpis = kpis || [];
+    // Map API fields to client expected fields
+    this._kpis = (kpis || []).map(k => ({
+      id: k.id,
+      title: k.name,  // API returns 'name', app expects 'title'
+      name: k.name,
+      description: '',
+      dataType: k.dataType || k.data_type || 'number',
+      hasTarget: k.hasTarget || k.has_target || false,
+      target: k.target || 0,
+      repeatOn: k.repeatOn || k.repeat_on || 'daily',
+      repeatDay: k.repeatDay || k.repeat_day,
+      isActive: k.isActive !== false && k.is_active !== false,
+      hasRemarks: k.hasRemarks || k.has_remarks || false,
+      createdAt: k.createdAt || k.created_at
+    }));
     
-    // Load all records for user (simple approach)
+    // Load all records for user
     this._records = [];
-    return kpis;
+    return this._kpis;
   },
 
   async getRecordsForKPI(kpiId) {
@@ -217,9 +247,21 @@ const Api = {
     return recs || [];
   },
 
+  // Map records fields
+  _mapRecords(recs) {
+    return (recs || []).map(r => ({
+      id: r.id,
+      kpiId: r.kpi_id || r.kpiId,
+      value: r.value,
+      date: r.recorded_at?.slice(0, 10) || r.recordedAt?.slice(0, 10) || r.date,
+      recordedAt: r.recorded_at || r.recordedAt,
+      remarks: r.remarks
+    }));
+  },
+
   getRecordsByKPI(kpiId) {
     const allRecords = this._records || [];
-    return allRecords.filter(r => (r.kpi_id === kpiId || r.kpiId === kpiId)).sort((a, b) => new Date(a.recorded_at || a.recordedAt) - new Date(b.recorded_at || b.recordedAt));
+    return allRecords.filter(r => r.kpiId === kpiId).sort((a, b) => new Date(a.date || a.recordedAt) - new Date(b.date || b.recordedAt));
   },
 
   getLatestRecord(kpiId) {
@@ -227,12 +269,10 @@ const Api = {
     return r.length ? r[r.length - 1] : null;
   },
 
-  todayStr() { return new Date().toISOString().slice(0, 10); },
-
   hasRecordToday(kpiId) {
     const today = this.todayStr();
     const allRecords = this._records || [];
-    return allRecords.some(r => (r.kpi_id === kpiId || r.kpiId === kpiId) && (r.recorded_at || r.recordedAt) && (r.recorded_at || r.recordedAt).slice(0, 10) === today);
+    return allRecords.some(r => r.kpiId === kpiId && r.date === today);
   },
 
   logout() {
