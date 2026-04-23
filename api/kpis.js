@@ -52,21 +52,57 @@ export default async function handler(req, res) {
     }
     try {
       const result = await pool.query(
-        'INSERT INTO kpis (user_id, name, target, unit, frequency, color, data_type, has_target, has_remarks, repeat_on, repeat_day) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-        [userId, kpiName, target || 0, unit || '', frequency || repeatOn || 'daily', color || '#3b82f6', dataType || 'number', hasTarget || false, hasRemarks || false, repeatOn || 'daily', repeatDay || null]
+        'INSERT INTO kpis (user_id, name, target, unit, frequency, color) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [userId, kpiName, target || 0, unit || '', frequency || 'daily', color || '#3b82f6']
       );
-      res.status(201).json(result.rows[0]);
+      const row = result.rows[0];
+      row.dataType = dataType || 'number';
+      row.hasTarget = hasTarget || false;
+      row.hasRemarks = hasRemarks || false;
+      row.repeatOn = repeatOn || 'daily';
+      row.repeatDay = repeatDay || null;
+      row.isActive = true;
+      res.status(201).json(row);
     } catch (error) {
       console.error('KPI POST error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   }
   
-  else if (req.method === 'PUT') {
-    const { id, name, title, target, unit, frequency, color, dataType, hasTarget, hasRemarks, repeatOn, repeatDay } = req.body;
+else if (req.method === 'PUT') {
+    const { id, name, title, target, unit, frequency, color } = req.body;
     if (!id) {
       return res.status(400).json({ error: 'ID required' });
     }
+    try {
+      const kpiName = name || title;
+      const result = await pool.query(
+        'UPDATE kpis SET name = COALESCE($1, name), target = COALESCE($2, target), unit = COALESCE($3, unit), frequency = COALESCE($4, frequency), color = COALESCE($5, color) WHERE id = $6 AND user_id = $7 RETURNING *',
+        [kpiName, target, unit, frequency, color, id, userId]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'KPI not found' });
+      }
+      res.json(result.rows[0]);
+    } catch (error) {
+      console.error('KPI PUT error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
+  else if (req.method === 'DELETE') {
+    const { id } = req.query;
+    if (!id) {
+      return res.status(400).json({ error: 'ID required' });
+    }
+    try {
+      await pool.query('DELETE FROM kpis WHERE id = $1 AND user_id = $2', [id, userId]);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('KPI DELETE error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
     try {
       const kpiName = name || title;
       const result = await pool.query(
