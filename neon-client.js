@@ -84,11 +84,20 @@ const Api = {
       isActive: true, 
       createdAt: new Date().toISOString() 
     };
-    return this.saveKPI(kpi);
+    return this.saveKPI(kpi).then(result => {
+      if (result) this._kpis.push(result);
+      return result;
+    });
   },
 
   updateKPI(id, data) {
-    return this.saveKPI({ ...data, id });
+    return this.saveKPI({ ...data, id }).then(result => {
+      if (result) {
+        const idx = this._kpis.findIndex(k => k.id === id);
+        if (idx >= 0) this._kpis[idx] = result;
+      }
+      return result;
+    });
   },
 
   async deleteKPI(id) {
@@ -110,6 +119,9 @@ const Api = {
         value: data.value,
         recorded_at: data.date || data.recorded_at
       })
+    }).then(result => {
+      if (result) this._records.push(result);
+      return result;
     });
   },
 
