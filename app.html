@@ -196,10 +196,6 @@ tailwind.config = {
       </div>
       <div class="flex items-center gap-3">
         <div id="header-date" class="text-sm text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg"></div>
-        <button onclick="loadDemoData()" class="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-          Demo Data
-        </button>
         <button onclick="navigate('create-kpi')" class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
           New KPI
@@ -1152,116 +1148,6 @@ function doDeleteRecord(id){
 
 function closeModal(){document.getElementById('modal-overlay').classList.add('hidden');}
 function closeModalOnOverlay(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
-
-// ─────────────────────────────────────────────────────
-//  DEMO DATA
-// ─────────────────────────────────────────────────────
-function loadDemoData(){
-  if(App.kpis.length>0){
-    const mc=document.getElementById('modal-content');
-    mc.innerHTML=`
-      <div class="p-6 text-center">
-        <h3 class="font-bold text-slate-800 text-lg mb-2">Load Demo Data?</h3>
-        <p class="text-slate-500 mb-6">This will add demo KPIs and records to your current data.</p>
-        <div class="flex gap-3">
-          <button onclick="doLoadDemo()" class="flex-1 btn-primary py-2.5">Yes, Load Demo</button>
-          <button onclick="closeModal()" class="flex-1 btn-secondary py-2.5">Cancel</button>
-        </div>
-      </div>
-    `;
-    document.getElementById('modal-overlay').classList.remove('hidden');
-  } else {
-    doLoadDemo();
-  }
-}
-
-function doLoadDemo(){
-  closeModal();
-  const kpiDefs=[
-    {title:'Daily Sales Revenue',description:'Total revenue generated per day',dataType:'number',hasTarget:true,target:50000,hasRemarks:true,repeatOn:'daily',repeatDay:null},
-    {title:'Customer Satisfaction Score',description:'Average CSAT score from feedback',dataType:'percentage',hasTarget:true,target:90,hasRemarks:true,repeatOn:'weekly',repeatDay:'1'},
-    {title:'Website Uptime',description:'Percentage of time site is operational',dataType:'percentage',hasTarget:true,target:99.9,hasRemarks:false,repeatOn:'monthly',repeatDay:'1'},
-    {title:'New Clients Acquired',description:'Number of new paying customers',dataType:'number',hasTarget:true,target:20,hasRemarks:true,repeatOn:'monthly',repeatDay:'28'},
-    {title:'Daily Stand-up Completed',description:'Was the team stand-up meeting done?',dataType:'yes_no',hasTarget:false,target:null,hasRemarks:false,repeatOn:'daily',repeatDay:null},
-    {title:'Quarterly Revenue',description:'Total quarterly business revenue',dataType:'number',hasTarget:true,target:4000000,hasRemarks:true,repeatOn:'quarterly',repeatDay:'1'},
-    {title:'Employee Satisfaction Index',description:'Annual employee happiness score',dataType:'percentage',hasTarget:true,target:80,hasRemarks:true,repeatOn:'yearly',repeatDay:'01-15'},
-    {title:'Support Tickets Resolved',description:'Weekly count of resolved support tickets',dataType:'number',hasTarget:true,target:200,hasRemarks:false,repeatOn:'weekly',repeatDay:'5'},
-  ];
-
-  const createdKPIs=kpiDefs.map(def=>App.createKPI(def));
-
-  // Generate records for the past 90 days
-  const now=new Date();
-  const recDefs=[];
-
-  // Daily KPIs — generate for last 30 days
-  ['Daily Sales Revenue','Daily Stand-up Completed'].forEach(title=>{
-    const k=createdKPIs.find(c=>c.title===title);
-    if(!k)return;
-    for(let i=29;i>=0;i--){
-      const d=new Date(now);d.setDate(d.getDate()-i);
-      const dateStr=d.toISOString().slice(0,10);
-      if(k.dataType==='yes_no'){
-        recDefs.push({kpiId:k.id,value:Math.random()>0.15,remarks:'',date:dateStr});
-      } else {
-        const base=k.target?parseFloat(k.target):50000;
-        const variance=0.3;
-        const val=Math.round(base*(0.7+Math.random()*variance*2));
-        recDefs.push({kpiId:k.id,value:val,remarks:i%7===0?'End of week review':'',date:dateStr});
-      }
-    }
-  });
-
-  // Weekly KPIs — generate for last 12 weeks
-  ['Customer Satisfaction Score','Support Tickets Resolved'].forEach(title=>{
-    const k=createdKPIs.find(c=>c.title===title);
-    if(!k)return;
-    for(let w=11;w>=0;w--){
-      const d=new Date(now);d.setDate(d.getDate()-w*7);
-      const dateStr=d.toISOString().slice(0,10);
-      const base=k.target?parseFloat(k.target):100;
-      const val=k.dataType==='percentage'?Math.round((base*0.8+Math.random()*base*0.3)*10)/10:Math.round(base*(0.75+Math.random()*0.35));
-      recDefs.push({kpiId:k.id,value:val,remarks:'',date:dateStr});
-    }
-  });
-
-  // Monthly KPIs — last 6 months
-  ['Website Uptime','New Clients Acquired'].forEach(title=>{
-    const k=createdKPIs.find(c=>c.title===title);
-    if(!k)return;
-    for(let m=5;m>=0;m--){
-      const d=new Date(now.getFullYear(),now.getMonth()-m,1);
-      const dateStr=d.toISOString().slice(0,10);
-      const base=k.target?parseFloat(k.target):100;
-      const val=k.dataType==='percentage'?Math.round((base*0.9+Math.random()*base*0.15)*10)/10:Math.round(base*(0.6+Math.random()*0.6));
-      recDefs.push({kpiId:k.id,value:val,remarks:'',date:dateStr});
-    }
-  });
-
-  // Quarterly KPI
-  const qk=createdKPIs.find(c=>c.title==='Quarterly Revenue');
-  if(qk){
-    [0,3,6,9].forEach((mo,qi)=>{
-      if(qi<3){
-        const d=new Date(now.getFullYear(),mo,1);
-        const dateStr=d.toISOString().slice(0,10);
-        const val=Math.round(parseFloat(qk.target)*(0.8+Math.random()*0.4));
-        recDefs.push({kpiId:qk.id,value:val,remarks:`Q${qi+1} close`,date:dateStr});
-      }
-    });
-  }
-
-  // Yearly KPI
-  const yk=createdKPIs.find(c=>c.title==='Employee Satisfaction Index');
-  if(yk){
-    recDefs.push({kpiId:yk.id,value:78,remarks:'Annual survey completed',date:new Date(now.getFullYear(),0,15).toISOString().slice(0,10)});
-  }
-
-  recDefs.forEach(r=>App.createRecord(r));
-  toast(`Loaded ${createdKPIs.length} KPIs and ${recDefs.length} sample records!`,'info');
-  renderPage();
-  updateNav();
-}
 
 // ─────────────────────────────────────────────────────
 //  LOGOUT
