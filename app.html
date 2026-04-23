@@ -1072,14 +1072,17 @@ function submitRecord(e,kpiId){
   if(k.dataType==='yes_no')value=rawVal==='true';
   else value=parseFloat(rawVal);
 
-  App.createRecord({kpiId,value,remarks,date});
-  closeModal();
-  toast('Record saved!');
-  updateNav();
-  if(currentView==='record-entry')renderRecordEntry();
-  else if(currentView==='history')renderHistory();
-  else if(currentView==='dashboard')renderDashboard();
-  else if(currentView==='kpi-list')renderKPIList();
+  App.createRecord({kpiId,value,remarks,date}).then(() => {
+    closeModal();
+    toast('Record saved!');
+    updateNav();
+    if(currentView==='record-entry')renderRecordEntry();
+    else if(currentView==='history')renderHistory();
+    else if(currentView==='dashboard')renderDashboard();
+    else if(currentView==='kpi-list')renderKPIList();
+  }).catch(err => {
+    toast(err.message, 'error');
+  });
 }
 
 // ─────────────────────────────────────────────────────
@@ -1107,11 +1110,15 @@ function confirmDeleteKPI(id){
 }
 
 function doDeleteKPI(id){
-  App.deleteKPI(id);
-  closeModal();
-  toast('KPI deleted','error');
-  renderPage();
-  updateNav();
+  App.deleteKPI(id).then(() => {
+    App.kpis = App.kpis.filter(k => k.id !== id);
+    closeModal();
+    toast('KPI deleted','error');
+    renderPage();
+    updateNav();
+  }).catch(err => {
+    toast(err.message, 'error');
+  });
 }
 
 function confirmDeleteRecord(id){
@@ -1133,10 +1140,14 @@ function confirmDeleteRecord(id){
 }
 
 function doDeleteRecord(id){
-  App.deleteRecord(id);
-  closeModal();
-  toast('Record deleted');
-  renderPage();
+  App.deleteRecord(id).then(() => {
+    App.records = App.records.filter(r => r.id !== id);
+    closeModal();
+    toast('Record deleted');
+    renderPage();
+  }).catch(err => {
+    toast(err.message, 'error');
+  });
 }
 
 function closeModal(){document.getElementById('modal-overlay').classList.add('hidden');}
