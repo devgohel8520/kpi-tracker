@@ -25,6 +25,7 @@ export default async function handler(req, res) {
         id: r.id,
         user_id: r.user_id,
         name: r.name,
+        description: r.description || '',
         target: r.target || 0,
         unit: r.unit || '',
         frequency: r.frequency || 'daily',
@@ -45,15 +46,15 @@ export default async function handler(req, res) {
   } 
   
   else if (req.method === 'POST') {
-    const { name, title, target, unit, frequency, color, dataType, hasTarget, hasRemarks, repeatOn, repeatDay } = req.body;
+    const { name, title, description, target, unit, frequency, color, dataType, hasTarget, hasRemarks, repeatOn, repeatDay } = req.body;
     const kpiName = name || title;
     if (!kpiName) {
       return res.status(400).json({ error: 'Name required' });
     }
     try {
       const result = await pool.query(
-        'INSERT INTO kpis (user_id, name, target, unit, frequency, color) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [userId, kpiName, target || 0, unit || '', frequency || 'daily', color || '#3b82f6']
+        'INSERT INTO kpis (user_id, name, description, target, unit, frequency, color) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [userId, kpiName, description || '', target || 0, unit || '', frequency || 'daily', color || '#3b82f6']
       );
       const row = result.rows[0];
       row.dataType = dataType || 'number';
