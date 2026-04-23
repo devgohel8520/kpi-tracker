@@ -45,7 +45,7 @@ const Api = {
       repeatOn: 'daily',
       repeatDay: null,
       isActive: true,
-      hasRemarks: false,
+      hasRemarks: true,
       createdAt: k.created_at
     }));
     
@@ -94,7 +94,7 @@ const Api = {
           target: Number(result.target) || 0,
           repeatOn: 'daily',
           isActive: true,
-          hasRemarks: false,
+          hasRemarks: true,
           createdAt: result.created_at
         });
       }
