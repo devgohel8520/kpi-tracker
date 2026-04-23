@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════
 //  CONFIG - Update these for your Supabase project
 // ═══════════════════════════════════════════════════════
-const SUPABASE_URL = 'Rest API: https://tnbrhufwngacjecnybnm.supabase.co/rest/v1/';
+const SUPABASE_URL = 'https://tnbrhufwngacjecnybnm.supabase.co/rest/v1/';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRuYnJodWZ3bmdhY2plY255Ym5tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NTYyNzcsImV4cCI6MjA5MjUzMjI3N30.WRPutgx1Q8uN4MyF7w6xwEPbUoUDroE-6_qQBq-BSBM';
 
 // Note: Get these from your Supabase dashboard:
