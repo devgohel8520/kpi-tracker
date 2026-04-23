@@ -58,7 +58,7 @@ const Api = {
             for (const r of recs) {
               this._records.push({
                 id: r.id,
-                kpiId: r.kpi_id,
+                kpiId: Number(r.kpi_id),
                 value: Number(r.value),
                 date: r.recorded_at ? r.recorded_at.slice(0, 10) : null,
                 recordedAt: r.recorded_at,
@@ -86,7 +86,7 @@ const Api = {
     return this.saveKPI(kpi).then(result => {
       if (result) {
         this._kpis.push({
-          id: result.id,
+          id: Number(result.id),
           title: result.name,
           name: result.name,
           dataType: 'number',
@@ -112,17 +112,18 @@ const Api = {
   updateKPI(id, data) {
     return this.saveKPI({...data, id}).then(result => {
       if (result) {
-        const idx = this._kpis.findIndex(k => k.id === id);
-        if (idx >= 0) this._kpis[idx] = {...this._kpis[idx], ...result, title: result.name};
+        const idx = this._kpis.findIndex(k => Number(k.id) === Number(id));
+        if (idx >= 0) this._kpis[idx] = {...this._kpis[idx], ...result, title: result.name, id: Number(result.id)};
       }
       return result;
     });
   },
 
   async deleteKPI(id) {
-    const result = await this._request(`/kpis?id=${id}`, {method: 'DELETE'});
-    this._kpis = this._kpis.filter(k => k.id !== id);
-    this._records = this._records.filter(r => r.kpiId !== id);
+    const numId = Number(id);
+    const result = await this._request(`/kpis?id=${numId}`, {method: 'DELETE'});
+    this._kpis = this._kpis.filter(k => Number(k.id) !== numId);
+    this._records = this._records.filter(r => Number(r.kpiId) !== numId);
     return result;
   },
 
@@ -153,17 +154,21 @@ const Api = {
   },
 
   async deleteRecord(id) {
-    const result = await this._request(`/records?id=${id}`, {method: 'DELETE'});
-    this._records = this._records.filter(r => r.id !== id);
+    const numId = Number(id);
+    const result = await this._request(`/records?id=${numId}`, {method: 'DELETE'});
+    this._records = this._records.filter(r => Number(r.id) !== numId);
     return result;
   },
 
   getKPIById(id) {
-    return this._kpis.find(k => k.id === id);
+    // Handle both string and number id
+    const numId = Number(id);
+    return this._kpis.find(k => k.id === id || k.id === numId);
   },
 
   getRecordsByKPI(kpiId) {
-    return this._records.filter(r => r.kpiId === kpiId).sort((a, b) => {
+    const numId = Number(kpiId);
+    return this._records.filter(r => r.kpiId === kpiId || r.kpiId === numId).sort((a, b) => {
       const da = a.date || a.recordedAt || '';
       const db = b.date || b.recordedAt || '';
       return new Date(da) - new Date(db);
@@ -179,7 +184,8 @@ const Api = {
 
   hasRecordToday(kpiId) {
     const today = this.todayStr();
-    return this._records.some(r => r.kpiId === kpiId && r.date === today);
+    const numId = Number(kpiId);
+    return this._records.some(r => (r.kpiId === kpiId || r.kpiId === numId) && r.date === today);
   },
 
   async login(email, password, remember = false) {
