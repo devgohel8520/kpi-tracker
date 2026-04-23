@@ -14,10 +14,15 @@ const Api = {
       ...options.headers
     };
 
-    const response = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers
-    });
+    let response;
+    try {
+      response = await fetch(`${API_BASE}${path}`, {
+        ...options,
+        headers
+      });
+    } catch (e) {
+      throw new Error('API unavailable. Deploy to Vercel or run `vercel dev` locally');
+    }
 
     const data = await response.json();
     
