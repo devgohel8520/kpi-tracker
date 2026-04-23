@@ -187,7 +187,8 @@ const Api = {
   hasRecordToday(kpiId) {
     const today = this.todayStr();
     const numId = Number(kpiId);
-    return this._records.some(r => (r.kpiId === kpiId || r.kpiId === numId) && r.date === today);
+    const rec = this._records.find(r => (r.kpiId === kpiId || r.kpiId === numId) && r.date === today);
+    return !!rec;
   },
 
   async login(email, password, remember = false) {
