@@ -29,14 +29,15 @@ export default async function handler(req, res) {
   } 
   
   else if (req.method === 'POST') {
-    const { name, target, unit, frequency, color } = req.body;
-    if (!name) {
+    const { name, title, target, unit, frequency, color } = req.body;
+    const kpiName = name || title;
+    if (!kpiName) {
       return res.status(400).json({ error: 'Name required' });
     }
     try {
       const result = await pool.query(
         'INSERT INTO kpis (user_id, name, target, unit, frequency, color) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [userId, name, target || 0, unit || '', frequency || 'daily', color || '#3b82f6']
+        [userId, kpiName, target || 0, unit || '', frequency || 'daily', color || '#3b82f6']
       );
       res.status(201).json(result.rows[0]);
     } catch (error) {
