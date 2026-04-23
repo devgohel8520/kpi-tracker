@@ -35,17 +35,17 @@ const Api = {
   async loadAll() {
     const kpis = await this._request('/kpis');
     this._kpis = (kpis || []).map(k => ({
-      id: k.id,
+      id: Number(k.id),
       title: k.name || '',
       name: k.name || '',
-      description: k.description || '',
+      description: k.description || '',  // Already in select *
       dataType: 'number',
       hasTarget: !!k.target,
       target: Number(k.target) || 0,
       repeatOn: 'daily',
       repeatDay: null,
       isActive: true,
-      hasRemarks: true,
+      hasRemarks: true,  // Default true for visibility
       createdAt: k.created_at
     }));
     
@@ -76,6 +76,7 @@ const Api = {
     const kpi = {
       title: data.title || data.name || '',
       name: data.title || data.name || '',
+      description: data.description || '',  // Added
       dataType: data.dataType || 'number',
       hasTarget: data.hasTarget === true,
       target: Number(data.target) || 0,
@@ -89,12 +90,13 @@ const Api = {
           id: Number(result.id),
           title: result.name,
           name: result.name,
+          description: result.description || '',  // Added
           dataType: 'number',
           hasTarget: !!result.target,
           target: Number(result.target) || 0,
           repeatOn: 'daily',
           isActive: true,
-          hasRemarks: true,
+          hasRemarks: true,  // Also default
           createdAt: result.created_at
         });
       }
