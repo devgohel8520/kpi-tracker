@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>KPI Tracker — Admin</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',
+          400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',
+          800:'#1e40af',900:'#1e3a8a'
+        }
+      }
+    }
+  }
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:#f1f5f9;}
+  ::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px;}
+  ::-webkit-scrollbar-thumb:hover{background:#64748b;}
+  .nav-active{background:rgba(255,255,255,0.15)!important;color:#fff!important;}
+  .nav-item:hover{background:rgba(255,255,255,0.1);color:#fff;}
+  .period-btn.active{background:#2563eb;color:#fff;border-color:#2563eb;}
+  .kpi-card{transition:box-shadow 0.2s,transform 0.2s;}
+  .kpi-card:hover{box-shadow:0 8px 25px rgba(0,0,0,0.12);transform:translateY(-1px);}
+  .form-input{width:100%;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;transition:border 0.2s,box-shadow 0.2s;background:#fff;}
+  .form-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,0.1);}
+  .btn-primary{background:#2563eb;color:#fff;padding:9px 18px;border-radius:8px;font-size:14px;font-weight:600;border:none;cursor:pointer;transition:background 0.2s,transform 0.1s;}
+  .btn-primary:hover{background:#1d4ed8;}
+  .btn-primary:active{transform:scale(0.98);}
+  .btn-secondary{background:#f1f5f9;color:#475569;padding:9px 18px;border-radius:8px;font-size:14px;font-weight:600;border:1px solid #e2e8f0;cursor:pointer;transition:background 0.2s;}
+  .btn-secondary:hover{background:#e2e8f0;}
+  .btn-danger{background:#fee2e2;color:#dc2626;padding:7px 14px;border-radius:7px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:background 0.2s;}
+  .btn-danger:hover{background:#fecaca;}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}
+  .toast-enter{animation:slideUp 0.3s ease;}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .progress-bar{height:6px;border-radius:3px;background:#e2e8f0;overflow:hidden;}
+  .progress-fill{height:100%;border-radius:3px;transition:width 0.5s ease;}
+  select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748b' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:32px;}
+  .toggle{position:relative;display:inline-block;width:42px;height:22px;}
+  .toggle input{opacity:0;width:0;height:0;}
+  .toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#cbd5e1;border-radius:22px;transition:0.3s;}
+  .toggle-slider:before{position:absolute;content:'';height:16px;width:16px;left:3px;bottom:3px;background:white;border-radius:50%;transition:0.3s;}
+  input:checked + .toggle-slider{background:#2563eb;}
+  input:checked + .toggle-slider:before{transform:translateX(20px);}
+  .stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;transition:box-shadow 0.2s;}
+  .stat-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.08);}
+.chart-container{position:relative;height:280px;}
+  .empty-state{text-align:center;padding:60px 20px;}
+  .empty-state svg{margin:0 auto 16px;opacity:0.4;}
+  tr:hover td{background:#f8fafc;}
+  th{background:#f8fafc;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748b;}
+  .mobile-menu-btn{display:none!important;}
+  .sidebar-overlay{display:none;}
+  .sidebar{transition:transform 0.3s ease;}
+
+  @media (max-width:1024px){
+    .mobile-menu-btn{display:flex!important;}
+    .sidebar{position:fixed;top:0;left:0;height:100%;transform:translateX(-100%);z-index:40;width:260px;}
+    .sidebar.open{transform:translateX(0);}
+    .sidebar-overlay{display:block;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:35;opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s;}
+    .sidebar-overlay.open{opacity:1;visibility:visible;}
+  }
+
+  @media (max-width:768px){
+    body{font-size:14px;}
+    .page-content{padding:12px!important;}
+    .header{padding:12px!important;flex-wrap:wrap!important;gap:8px!important;}
+    .header-actions{flex-wrap:wrap;gap:8px;}
+    .header-date{display:none!important;}
+    .stat-card{padding:14px!important;}
+    .stat-card .text-3xl{font-size:1.5rem!important;}
+    .grid-cols-2,.grid-cols-4{grid-template-columns:1fr 1fr!important;}
+    .lg\:grid-cols-4{grid-template-columns:1fr 1fr!important;}
+    .kpi-card{padding:14px!important;}
+    .chart-container{height:220px!important;}
+    .empty-state{padding:40px 16px!important;}
+    .empty-state svg{width:48px;height:48px;}
+    table{font-size:12px;}
+    th,td{padding:8px 6px!important;}
+    .badge{font-size:10px;padding:2px 6px;}
+    .btn-primary,.btn-secondary,.btn-danger{padding:8px 12px;font-size:12px;}
+    .max-w-2xl,.max-w-3xl,.max-w-md{max-width:100%!important;}
+    .bg-white.rounded-2xl{padding:16px!important;}
+    .form-input{padding:10px 12px;font-size:13px;}
+  }
+
+  @media (max-width:480px){
+    .grid-cols-2,.grid-cols-4,.lg\:grid-cols-4{grid-template-columns:1fr!important;}
+    .page-title{font-size:18px!important;}
+    .page-subtitle{font-size:12px!important;}
+    .header-actions button span{display:none;}
+    .header-actions button{padding:8px 10px;}
+    .landing-hero h1{font-size:2rem!important;}
+    .landing-hero p{font-size:1rem!important;}
+  }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased">
+
+<!-- Mobile Menu Button -->
+<button onclick="toggleSidebar()" class="mobile-menu-btn fixed top-3 left-3 z-50 w-10 h-10 bg-blue-800 rounded-lg items-center justify-center shadow-lg lg:hidden" aria-label="Open menu">
+  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+</button>
+
+<!-- Sidebar Overlay -->
+<div id="sidebar-overlay" class="sidebar-overlay lg:hidden" onclick="closeSidebar()"></div>
+
+<div class="flex h-screen overflow-hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar w-64 bg-blue-800 text-white flex flex-col flex-shrink-0 shadow-xl" style="min-width:260px;">
+    <!-- Mobile Close Button -->
+    <button onclick="closeSidebar()" class="mobile-menu-btn absolute top-3 right-3 w-10 h-10 bg-blue-700 rounded-lg items-center justify-center hover:bg-blue-600 lg:hidden" aria-label="Close menu">
+      <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+    <div class="px-5 py-5 border-b border-blue-700">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center shadow">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="font-bold text-white text-base leading-tight">KPI Tracker</div>
+          <div class="text-blue-300 text-xs">Performance Monitor</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <div class="text-blue-400 text-xs font-semibold uppercase tracking-wider px-3 pb-2 pt-1">Main</div>
+      <a href="#" onclick="return navigate('dashboard')" id="nav-dashboard" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-200 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2zm11-4h4a2 2 0 012 2v3M3 13h18"/></svg>
+        Dashboard
+      </a>
+      <a href="#" onclick="return navigate('kpi-list')" id="nav-kpi-list" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-200 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        My KPIs
+        <span id="kpi-count-badge" class="ml-auto text-xs bg-blue-600 text-blue-100 px-2 py-0.5 rounded-full"></span>
+      </a>
+
+      <div class="text-blue-400 text-xs font-semibold uppercase tracking-wider px-3 pb-2 pt-4">Actions</div>
+      <a href="#" onclick="return navigate('create-kpi')" id="nav-create-kpi" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-200 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Create KPI
+      </a>
+      <a href="#" onclick="return navigate('record-entry')" id="nav-record-entry" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-200 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        Record Entry
+        <span id="due-count-badge" class="ml-auto text-xs bg-green-500 text-white px-2 py-0.5 rounded-full hidden"></span>
+      </a>
+
+      <div class="text-blue-400 text-xs font-semibold uppercase tracking-wider px-3 pb-2 pt-4">Reports</div>
+      <a href="#" onclick="return navigate('history')" id="nav-history" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-200 transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        History
+      </a>
+    </nav>
+
+    <div class="px-4 py-4 border-t border-blue-700">
+      <div class="flex items-center gap-3">
+        <div id="user-avatar" class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-xs font-bold text-white">U</div>
+        <div class="flex-1 min-w-0">
+          <div id="user-name" class="text-sm font-semibold text-white truncate">User</div>
+          <div class="text-xs text-blue-300">Performance Manager</div>
+        </div>
+      </div>
+      <button onclick="handleLogout()" class="w-full mt-2 text-left px-3 py-2 text-sm text-blue-200 hover:bg-blue-700 rounded-lg transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <!-- Top Header -->
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between flex-shrink-0 shadow-sm">
+      <div>
+        <h1 id="page-title" class="page-title text-xl font-bold text-slate-800">Dashboard</h1>
+        <p id="page-subtitle" class="text-sm text-slate-500 mt-0.5">Welcome back! Here's your KPI performance overview.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="header-date" class="text-sm text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg"></div>
+        <button onclick="loadDemoData()" class="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          Demo Data
+        </button>
+        <button onclick="navigate('create-kpi')" class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          New KPI
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <div id="page-content" class="flex-1 overflow-y-auto p-6"></div>
+  </main>
+</div>
+
+<!-- Modal Overlay -->
+<div id="modal-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onclick="closeModalOnOverlay(event)">
+  <div id="modal-content" class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast-container" class="fixed bottom-6 right-6 z-50 space-y-2 pointer-events-none"></div>
+
+<script>
+// ─────────────────────────────────────────────────────
+//  SIDEBAR TOGGLE
+// ─────────────────────────────────────────────────────
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ─────────────────────────────────────────────────────
+//  ROUTING
+// ─────────────────────────────────────────────────────
+let currentView='dashboard';
+let editingKPIId=null;
+let dashPeriod='monthly';
+let histKPIFilter='';
+let histDateFrom='';
+let histDateTo='';
+let chartInstances={};
+
+function navigate(view,extra){
+  currentView=view;
+  editingKPIId=(extra&&extra.editId)||null;
+  updateNav();
+  renderPage();
+  return false;
+}
+
+function updateNav(){
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('nav-active'));
+  const navId='nav-'+currentView;
+  const el=document.getElementById(navId);
+  if(el)el.classList.add('nav-active');
+  // badges
+  const kpis=App.kpis;
+  const badge=document.getElementById('kpi-count-badge');
+  if(badge)badge.textContent=kpis.length||'';
+  const due=getDueKPIs().length;
+  const dueBadge=document.getElementById('due-count-badge');
+  if(dueBadge){dueBadge.textContent=due;dueBadge.classList.toggle('hidden',due===0);}
+}
+
+//  RENDER ENGINE
+// ─────────────────────────────────────────────────────
+function renderPage(){
+  Object.keys(chartInstances).forEach(k=>destroyChart(k));
+  chartInstances={};
+  const titles={
+    dashboard:['Dashboard','Performance overview across all KPIs'],
+    'kpi-list':['My KPIs','Manage and monitor your key performance indicators'],
+    'create-kpi':['Create KPI','Define a new key performance indicator'],
+    'record-entry':['Record Entry','Log values for your KPIs'],
+    history:['History','View all recorded entries'],
+  };
+  if(editingKPIId)titles['create-kpi']=['Edit KPI','Update your key performance indicator'];
+  const [t,s]=titles[currentView]||['Page',''];
+  document.getElementById('page-title').textContent=t;
+  document.getElementById('page-subtitle').textContent=s;
+  document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+
+  const views={
+    dashboard:renderDashboard,
+    'kpi-list':renderKPIList,
+    'create-kpi':renderCreateKPI,
+    'record-entry':renderRecordEntry,
+    history:renderHistory,
+  };
+  const fn=views[currentView];
+  if(fn)fn();
+}
+
+// ─────────────────────────────────────────────────────
+//  DASHBOARD VIEW
+// ─────────────────────────────────────────────────────
+function renderDashboard(){
+  const pc=document.getElementById('page-content');
+  const kpis=App.kpis;
+  const records=App.records;
+  const{start,end}=getDateRange(dashPeriod);
+
+  // Stats
+  const totalKPIs=kpis.length;
+  const activeKPIs=kpis.filter(k=>k.isActive).length;
+  const periodRecords=records.filter(r=>{const d=new Date(r.date+'T00:00:00');return d>=start&&d<=end;});
+  const todayRecs=records.filter(r=>r.date===App.todayStr());
+
+  // KPI achievement summary
+  let onTarget=0,nearTarget=0,offTarget=0,noTarget=0;
+  kpis.forEach(k=>{
+    const lr=App.getLatestRecord(k.id);
+    if(!lr){noTarget++;return;}
+    const pct=achievementPct(k,lr.value);
+    if(pct===null)noTarget++;
+    else if(pct>=100)onTarget++;
+    else if(pct>=75)nearTarget++;
+    else offTarget++;
+  });
+
+  const periodBtns=['daily','weekly','monthly','quarterly','yearly'].map(p=>`
+    <button onclick="dashPeriod='${p}';renderDashboard();"
+      class="period-btn px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-blue-50 transition-colors capitalize ${dashPeriod===p?'active':''}">${p.charAt(0).toUpperCase()+p.slice(1)}</button>
+  `).join('');
+
+  pc.innerHTML=`
+    <!-- Period Selector -->
+    <div class="flex items-center gap-2 mb-6 flex-wrap">
+      <span class="text-sm font-medium text-slate-600 mr-1">Period:</span>
+      ${periodBtns}
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="stat-card">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total KPIs</span>
+          <div class="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10"/></svg>
+          </div>
+        </div>
+        <div class="text-3xl font-bold text-slate-800">${totalKPIs}</div>
+        <div class="text-sm text-slate-500 mt-1">${activeKPIs} active</div>
+      </div>
+      <div class="stat-card">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Records (Period)</span>
+          <div class="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+        </div>
+        <div class="text-3xl font-bold text-slate-800">${periodRecords.length}</div>
+        <div class="text-sm text-slate-500 mt-1">${todayRecs.length} today</div>
+      </div>
+      <div class="stat-card">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">On Target</span>
+          <div class="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+          </div>
+        </div>
+        <div class="text-3xl font-bold text-slate-800">${onTarget}</div>
+        <div class="text-sm text-slate-500 mt-1">${nearTarget} near target</div>
+      </div>
+      <div class="stat-card">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Off Target</span>
+          <div class="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
+          </div>
+        </div>
+        <div class="text-3xl font-bold text-slate-800">${offTarget}</div>
+        <div class="text-sm text-slate-500 mt-1">${noTarget} no target set</div>
+      </div>
+    </div>
+
+    <!-- KPI Status Grid + Chart -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <!-- KPI Status Cards -->
+      <div class="lg:col-span-1 space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold text-slate-700">KPI Status</h2>
+          <span class="text-xs text-slate-400">Latest values</span>
+        </div>
+        ${kpis.length===0?`<div class="empty-state bg-white rounded-xl border border-slate-200 py-10"><svg class="w-10 h-10 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg><p class="text-slate-400 text-sm">No KPIs created yet</p><button onclick="navigate('create-kpi')" class="mt-3 btn-primary text-xs px-4 py-2">Create First KPI</button></div>`:
+        kpis.map(k=>{
+          const lr=App.getLatestRecord(k.id);
+          const pct=lr?achievementPct(k,lr.value):null;
+          const st=statusLabel(pct);
+          const recs=getRecordsInRange(k.id,start,end);
+          return `<div class="kpi-card bg-white border border-slate-200 rounded-xl p-4 cursor-pointer" onclick="showKPIChart('${k.id}')">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="font-semibold text-slate-800 text-sm leading-tight">${esc(k.title)}</div>
+              <span class="badge ${st.cls} flex-shrink-0">${st.label}</span>
+            </div>
+            <div class="flex items-center gap-4 text-xs text-slate-500 mb-3">
+              <span class="badge ${typeBadgeClass(k.dataType)}">${typeLabel(k.dataType)}</span>
+              <span>${repeatLabel(k)}</span>
+            </div>
+            ${lr?`<div class="flex items-end justify-between">
+              <div>
+                <div class="text-2xl font-bold text-slate-800">${fmtVal(k,lr.value)}</div>
+                ${k.hasTarget?`<div class="text-xs text-slate-400">Target: ${fmtVal(k,k.target)}</div>`:''}
+              </div>
+              <div class="text-right">
+                <div class="text-xs text-slate-400">${recs.length} records</div>
+                <div class="text-xs text-slate-400">${fmtDate(lr.date)}</div>
+              </div>
+            </div>
+            ${k.hasTarget&&pct!==null?`<div class="progress-bar mt-2"><div class="progress-fill" style="width:${Math.min(pct,100)}%;background:${pctColor(pct)};"></div></div><div class="text-xs text-right mt-1" style="color:${pctColor(pct)};">${pct.toFixed(0)}%</div>`:''}`:
+            `<div class="text-sm text-slate-400 italic">No records yet</div>`}
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Chart Area -->
+      <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-semibold text-slate-700" id="chart-title">Overview Chart</h2>
+          <span class="text-xs text-slate-400">Click a KPI card to see its trend</span>
+        </div>
+        <div id="overview-chart-wrap" class="chart-container">
+          <canvas id="overview-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Records -->
+    <div class="bg-white border border-slate-200 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-semibold text-slate-700">Recent Activity</h2>
+        <button onclick="navigate('history')" class="text-sm text-blue-600 hover:underline">View all →</button>
+      </div>
+      ${records.length===0?`<div class="empty-state py-8"><p class="text-slate-400 text-sm">No records yet. <button onclick="navigate('record-entry')" class="text-blue-600 underline">Record your first entry.</button></p></div>`:
+      `<div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr>
+            <th class="text-left px-3 py-2 rounded-l-lg">KPI</th>
+            <th class="text-left px-3 py-2">Value</th>
+            <th class="text-left px-3 py-2">Date</th>
+            <th class="text-left px-3 py-2">Remarks</th>
+            <th class="text-right px-3 py-2 rounded-r-lg">Status</th>
+          </tr></thead>
+          <tbody>
+            ${[...records].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,8).map(r=>{
+              const k=App.getKPIById(r.kpiId);
+              if(!k)return '';
+              const pct=achievementPct(k,r.value);
+              const st=statusLabel(pct);
+              return `<tr class="border-t border-slate-100">
+                <td class="px-3 py-3 font-medium text-slate-800">${esc(k.title)}</td>
+                <td class="px-3 py-3 font-semibold text-blue-700">${fmtVal(k,r.value)}</td>
+                <td class="px-3 py-3 text-slate-500">${fmtDate(r.date)}</td>
+                <td class="px-3 py-3 text-slate-500 max-w-xs truncate">${esc(r.remarks||'—')}</td>
+                <td class="px-3 py-3 text-right"><span class="badge ${st.cls}">${st.label}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`}
+    </div>
+  `;
+
+  // Render overview chart
+  renderOverviewChart(kpis,start,end);
+}
+
+function renderOverviewChart(kpis,start,end){
+  destroyChart('overview-chart');
+  const canvas=document.getElementById('overview-chart');
+  if(!canvas||kpis.length===0)return;
+  const datasets=[];
+  const colors=['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#db2777'];
+  kpis.slice(0,7).forEach((k,i)=>{
+    if(k.dataType==='yes_no')return;
+    const recs=getRecordsInRange(k.id,start,end);
+    if(recs.length<2)return;
+    datasets.push({
+      label:k.title,
+      data:recs.map(r=>({x:r.date,y:parseFloat(r.value)})),
+      borderColor:colors[i%colors.length],
+      backgroundColor:colors[i%colors.length]+'20',
+      borderWidth:2,fill:false,tension:0.3,pointRadius:3,
+    });
+  });
+  if(!datasets.length){
+    const ctx=canvas.getContext('2d');
+    ctx.font='14px sans-serif';ctx.fillStyle='#94a3b8';ctx.textAlign='center';
+    ctx.fillText('Record at least 2 entries per KPI to see trend charts',canvas.width/2,100);
+    return;
+  }
+  chartInstances['overview-chart']=new Chart(canvas,{
+    type:'line',
+    data:{datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      scales:{x:{type:'time'?'category':'category',ticks:{maxTicksLimit:8,font:{size:11}}},y:{ticks:{font:{size:11}}}},
+      plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
+      interaction:{mode:'index',intersect:false}
+    }
+  });
+}
+
+function showKPIChart(kpiId){
+  const k=App.getKPIById(kpiId);
+  if(!k)return;
+  const recs=App.getRecordsByKPI(kpiId);
+  const chartTitle=document.getElementById('chart-title');
+  if(chartTitle)chartTitle.textContent=k.title+' — Trend';
+  destroyChart('overview-chart');
+  const canvas=document.getElementById('overview-chart');
+  if(!canvas||recs.length<2){
+    if(canvas){const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);ctx.font='14px sans-serif';ctx.fillStyle='#94a3b8';ctx.textAlign='center';ctx.fillText('Need at least 2 records to show trend',canvas.width/2,100);}
+    return;
+  }
+  if(k.dataType==='yes_no'){
+    chartInstances['overview-chart']=new Chart(canvas,{
+      type:'bar',
+      data:{
+        labels:recs.map(r=>r.date),
+        datasets:[{label:'Yes/No',data:recs.map(r=>r.value?1:0),backgroundColor:recs.map(r=>r.value?'#16a34a':'#dc2626'),borderRadius:4}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:1,ticks:{callback:v=>v?'Yes':'No'}}},plugins:{legend:{display:false}}}
+    });
+    return;
+  }
+  const color='#2563eb';
+  const data={
+    labels:recs.map(r=>r.date),
+    datasets:[{
+      label:k.title,data:recs.map(r=>parseFloat(r.value)),
+      borderColor:color,backgroundColor:color+'20',fill:true,tension:0.3,borderWidth:2.5,pointRadius:4,pointBackgroundColor:color
+    }]
+  };
+  if(k.hasTarget&&k.target){
+    data.datasets.push({label:'Target',data:recs.map(()=>parseFloat(k.target)),borderColor:'#f59e0b',borderDash:[6,3],borderWidth:1.5,fill:false,pointRadius:0,tension:0});
+  }
+  chartInstances['overview-chart']=new Chart(canvas,{
+    type:'line',data,
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},interaction:{mode:'index',intersect:false}}
+  });
+}
+
+// ─────────────────────────────────────────────────────
+//  KPI LIST VIEW
+// ─────────────────────────────────────────────────────
+function renderKPIList(){
+  const pc=document.getElementById('page-content');
+  const kpis=App.kpis;
+  if(kpis.length===0){
+    pc.innerHTML=`<div class="empty-state bg-white rounded-2xl border border-slate-200 py-20">
+      <svg class="w-16 h-16 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+      <h3 class="text-slate-600 font-semibold text-lg mb-2">No KPIs yet</h3>
+      <p class="text-slate-400 mb-5">Create your first KPI to start tracking performance.</p>
+      <button onclick="navigate('create-kpi')" class="btn-primary px-6 py-2.5">Create First KPI</button>
+    </div>`;return;
+  }
+  pc.innerHTML=`
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+        <h2 class="font-semibold text-slate-700">${kpis.length} KPI${kpis.length!==1?'s':''}</h2>
+        <button onclick="navigate('create-kpi')" class="btn-primary text-xs px-4 py-2">+ Add KPI</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr>
+            <th class="text-left px-5 py-3">KPI Name</th>
+            <th class="text-left px-4 py-3">Type</th>
+            <th class="text-left px-4 py-3">Frequency</th>
+            <th class="text-left px-4 py-3">Target</th>
+            <th class="text-left px-4 py-3">Latest Value</th>
+            <th class="text-left px-4 py-3">Status</th>
+            <th class="text-right px-5 py-3">Actions</th>
+          </tr></thead>
+          <tbody>
+            ${kpis.map(k=>{
+              const lr=App.getLatestRecord(k.id);
+              const pct=lr?achievementPct(k,lr.value):null;
+              const st=statusLabel(pct);
+              return `<tr class="border-t border-slate-100">
+                <td class="px-5 py-4">
+                  <div class="font-semibold text-slate-800">${esc(k.title)}</div>
+                  ${k.description?`<div class="text-xs text-slate-400 mt-0.5 max-w-xs truncate">${esc(k.description)}</div>`:''}
+                </td>
+                <td class="px-4 py-4"><span class="badge ${typeBadgeClass(k.dataType)}">${typeLabel(k.dataType)}</span></td>
+                <td class="px-4 py-4 text-slate-600">${repeatLabel(k)}</td>
+                <td class="px-4 py-4">${k.hasTarget?`<span class="font-medium text-slate-700">${fmtVal(k,k.target)}</span>`:'<span class="text-slate-400">—</span>'}</td>
+                <td class="px-4 py-4">${lr?`<span class="font-bold text-blue-700">${fmtVal(k,lr.value)}</span><div class="text-xs text-slate-400">${fmtDate(lr.date)}</div>`:'<span class="text-slate-400 italic text-xs">No records</span>'}</td>
+                <td class="px-4 py-4"><span class="badge ${st.cls}">${st.label}</span></td>
+                <td class="px-5 py-4 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <button onclick="openRecordModal('${k.id}')" class="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-medium transition-colors">Record</button>
+                    <button onclick="navigate('create-kpi',{editId:'${k.id}'})" class="text-xs bg-slate-100 text-slate-600 hover:bg-slate-200 px-3 py-1.5 rounded-lg font-medium transition-colors">Edit</button>
+                    <button onclick="confirmDeleteKPI('${k.id}')" class="text-xs btn-danger py-1.5">Delete</button>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────
+//  CREATE / EDIT KPI VIEW
+// ─────────────────────────────────────────────────────
+function renderCreateKPI(){
+  const pc=document.getElementById('page-content');
+  const kpi=editingKPIId?App.getKPIById(editingKPIId):null;
+  const v=f=>kpi?kpi[f]:'';
+
+  pc.innerHTML=`
+    <div class="max-w-2xl mx-auto">
+      <div class="bg-white rounded-2xl border border-slate-200 p-8">
+        <div class="flex items-center gap-3 mb-7">
+          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10"/></svg>
+          </div>
+          <div>
+            <h2 class="font-bold text-slate-800 text-lg">${kpi?'Edit KPI':'Create New KPI'}</h2>
+            <p class="text-slate-500 text-sm">Fill in the details below to ${kpi?'update':'set up'} your KPI.</p>
+          </div>
+        </div>
+
+        <form id="kpi-form" onsubmit="submitKPIForm(event)">
+          <!-- Title -->
+          <div class="mb-5">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Title <span class="text-red-500">*</span></label>
+            <input type="text" id="f-title" class="form-input" placeholder="e.g., Daily Sales Revenue" value="${esc(v('title'))}" required maxlength="100">
+          </div>
+
+          <!-- Description -->
+          <div class="mb-5">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Description</label>
+            <textarea id="f-desc" class="form-input" rows="2" placeholder="Brief description of what this KPI measures...">${esc(v('description'))}</textarea>
+          </div>
+
+          <!-- Data Type -->
+          <div class="mb-5">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Data Type <span class="text-red-500">*</span></label>
+            <select id="f-type" class="form-input" onchange="onDataTypeChange()">
+              <option value="number" ${v('dataType')==='number'?'selected':''}>Number (e.g., 150, 2500)</option>
+              <option value="percentage" ${v('dataType')==='percentage'?'selected':''}>Percentage (e.g., 85.5%)</option>
+              <option value="yes_no" ${v('dataType')==='yes_no'?'selected':''}>Yes / No (boolean)</option>
+            </select>
+          </div>
+
+          <!-- Has Target -->
+          <div class="mb-5 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <div class="text-sm font-semibold text-slate-700">Has Target?</div>
+                <div class="text-xs text-slate-500">Enable to set a benchmark value</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="f-has-target" onchange="onHasTargetChange()" ${v('hasTarget')?'checked':''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div id="target-group" class="${v('hasTarget')?'':'hidden'}">
+              <label class="block text-sm font-semibold text-slate-700 mb-1.5">Target Value</label>
+              <input type="number" id="f-target" class="form-input" placeholder="Enter target value" value="${v('target')||''}" step="any">
+            </div>
+          </div>
+
+          <!-- Has Remarks -->
+          <div class="mb-5 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm font-semibold text-slate-700">Has Remarks?</div>
+                <div class="text-xs text-slate-500">Allow a notes field when recording</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="f-has-remarks" ${v('hasRemarks')?'checked':''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Repeat On -->
+          <div class="mb-5">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Repeat On <span class="text-red-500">*</span></label>
+            <select id="f-repeat" class="form-input" onchange="onRepeatChange()">
+              <option value="daily" ${v('repeatOn')==='daily'?'selected':''}>Daily</option>
+              <option value="weekly" ${v('repeatOn')==='weekly'?'selected':''}>Weekly</option>
+              <option value="fortnightly" ${v('repeatOn')==='fortnightly'?'selected':''}>Fortnightly (Every 2 Weeks)</option>
+              <option value="monthly" ${v('repeatOn')==='monthly'?'selected':''}>Monthly</option>
+              <option value="quarterly" ${v('repeatOn')==='quarterly'?'selected':''}>Quarterly</option>
+              <option value="half_yearly" ${v('repeatOn')==='half_yearly'?'selected':''}>Half-Yearly</option>
+              <option value="yearly" ${v('repeatOn')==='yearly'?'selected':''}>Yearly</option>
+            </select>
+          </div>
+
+          <!-- Repeat Day -->
+          <div id="repeat-day-group" class="mb-5 ${['daily'].includes(v('repeatOn')||'daily')?'hidden':''}">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5" id="repeat-day-label">Repeat Day</label>
+            <select id="f-repeat-day" class="form-input" id="f-repeat-day">
+            </select>
+            <p class="text-xs text-slate-500 mt-1" id="repeat-day-hint"></p>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex gap-3 pt-4 border-t border-slate-100 mt-6">
+            <button type="submit" class="btn-primary flex-1 py-2.5">${kpi?'Update KPI':'Create KPI'}</button>
+            <button type="button" onclick="navigate(${kpi?`'kpi-list'`:`'dashboard'`})" class="btn-secondary px-6">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  // Initialize conditional fields
+  onRepeatChange(v('repeatOn'),v('repeatDay'));
+  onDataTypeChange();
+}
+
+function onDataTypeChange(){
+  const type=document.getElementById('f-type')?.value;
+  const hasTarget=document.getElementById('f-has-target')?.checked;
+  const targetInput=document.getElementById('f-target');
+  if(!targetInput)return;
+  if(type==='yes_no'){
+    targetInput.type='hidden';
+    targetInput.parentElement.querySelector('label') && (targetInput.parentElement.style.display='none');
+  } else {
+    targetInput.type='number';
+    if(targetInput.parentElement)targetInput.parentElement.style.display='';
+  }
+}
+
+function onHasTargetChange(){
+  const cb=document.getElementById('f-has-target');
+  const grp=document.getElementById('target-group');
+  if(grp)grp.classList.toggle('hidden',!cb.checked);
+}
+
+function onRepeatChange(presetRepeat, presetDay){
+  const sel=document.getElementById('f-repeat');
+  const repeat=presetRepeat||sel?.value;
+  const grp=document.getElementById('repeat-day-group');
+  const daySel=document.getElementById('f-repeat-day');
+  const label=document.getElementById('repeat-day-label');
+  const hint=document.getElementById('repeat-day-hint');
+  if(!grp)return;
+
+  grp.classList.toggle('hidden',repeat==='daily');
+  if(repeat==='daily'||!daySel)return;
+
+  let options='';let labelTxt='Repeat Day';let hintTxt='';
+  if(repeat==='weekly'||repeat==='fortnightly'){
+    labelTxt=repeat==='weekly'?'Day of Week':'Day of Week (every 2 weeks)';
+    hintTxt=repeat==='fortnightly'?'Recurs every other week on this day':'';
+    options=DAYS.map((d,i)=>`<option value="${i}" ${String(presetDay)===String(i)?'selected':''}>${d}</option>`).join('');
+  } else if(repeat==='monthly'){
+    labelTxt='Day of Month';
+    hintTxt='KPI will be due on this date each month';
+    options=Array.from({length:28},(_, i)=>`<option value="${i+1}" ${String(presetDay)===String(i+1)?'selected':''}>${i+1}${ordinal(i+1)}</option>`).join('');
+  } else if(repeat==='quarterly'){
+    labelTxt='Day of Quarter Start Month';
+    hintTxt='Due on this day in Jan, Apr, Jul, Oct';
+    options=Array.from({length:28},(_, i)=>`<option value="${i+1}" ${String(presetDay)===String(i+1)?'selected':''}>${i+1}${ordinal(i+1)}</option>`).join('');
+  } else if(repeat==='half_yearly'){
+    labelTxt='Day of Half-Year Start Month';
+    hintTxt='Due on this day in January and July';
+    options=Array.from({length:28},(_, i)=>`<option value="${i+1}" ${String(presetDay)===String(i+1)?'selected':''}>${i+1}${ordinal(i+1)}</option>`).join('');
+  } else if(repeat==='yearly'){
+    labelTxt='Specific Date (Month and Day)';
+    hintTxt='Select the annual due date';
+    const presetParts=(presetDay||'').split('-');
+    const presetM=presetParts[0]||'01';
+    const presetD=presetParts[1]||'01';
+    options=MONTHS.map((mo,mi)=>{
+      const mm=String(mi+1).padStart(2,'0');
+      return Array.from({length:28},(_, di)=>{
+        const dd=String(di+1).padStart(2,'0');
+        const val=`${mm}-${dd}`;
+        const selected=presetM===mm&&presetD===dd;
+        return `<option value="${val}" ${selected?'selected':''}>${mo} ${di+1}</option>`;
+      }).join('');
+    }).join('');
+  }
+
+  if(label)label.textContent=labelTxt;
+  if(hint)hint.textContent=hintTxt;
+  daySel.innerHTML=options;
+}
+
+function ordinal(n){const s=['th','st','nd','rd'];const v=n%100;return n+(s[(v-20)%10]||s[v]||s[0]);}
+
+function submitKPIForm(e){
+  e.preventDefault();
+  const title=document.getElementById('f-title').value.trim();
+  const description=document.getElementById('f-desc').value.trim();
+  const dataType=document.getElementById('f-type').value;
+  const hasTarget=document.getElementById('f-has-target').checked;
+  const target=hasTarget&&dataType!=='yes_no'?parseFloat(document.getElementById('f-target').value)||0:null;
+  const hasRemarks=document.getElementById('f-has-remarks').checked;
+  const repeatOn=document.getElementById('f-repeat').value;
+  const repeatDayEl=document.getElementById('f-repeat-day');
+  const repeatDay=repeatOn!=='daily'&&repeatDayEl?repeatDayEl.value:null;
+
+  if(!title){toast('Title is required','error');return;}
+  if(hasTarget&&dataType!=='yes_no'&&!document.getElementById('f-target').value){toast('Please enter a target value','error');return;}
+
+  const data={title,description,dataType,hasTarget,target,hasRemarks,repeatOn,repeatDay};
+
+  if(editingKPIId){
+    App.updateKPI(editingKPIId,data);
+    toast('KPI updated successfully!');
+  } else {
+    App.createKPI(data);
+    toast('KPI created successfully!');
+  }
+  navigate('kpi-list');
+}
+
+// ─────────────────────────────────────────────────────
+//  RECORD ENTRY VIEW
+// ─────────────────────────────────────────────────────
+function renderRecordEntry(){
+  const pc=document.getElementById('page-content');
+  const kpis=App.kpis.filter(k=>k.isActive);
+  if(kpis.length===0){
+    pc.innerHTML=`<div class="empty-state bg-white rounded-2xl border border-slate-200 py-20">
+      <svg class="w-14 h-14 text-slate-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      <h3 class="text-slate-600 font-semibold text-lg mb-2">No KPIs to record</h3>
+      <p class="text-slate-400 mb-5">Create KPIs first before recording entries.</p>
+      <button onclick="navigate('create-kpi')" class="btn-primary px-6 py-2.5">Create KPI</button>
+    </div>`;return;
+  }
+
+  const dueKPIs=getDueKPIs();
+  const otherKPIs=kpis.filter(k=>!dueKPIs.find(d=>d.id===k.id));
+  const todayStr=App.todayStr();
+
+  pc.innerHTML=`
+    <div class="max-w-3xl mx-auto space-y-6">
+      <!-- Today Banner -->
+      <div class="bg-blue-700 text-white rounded-2xl px-6 py-5 flex items-center gap-4">
+        <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+          <div class="font-bold text-lg">${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>
+          <div class="text-blue-200 text-sm">${dueKPIs.length} KPI${dueKPIs.length!==1?'s':''} due today · ${App.records.filter(r=>r.date===todayStr).length} recorded today</div>
+        </div>
+      </div>
+
+      ${dueKPIs.length>0?`
+      <!-- Due Today -->
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <div class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></div>
+          <h2 class="font-bold text-slate-800">Due Today</h2>
+          <span class="badge bg-green-100 text-green-700">${dueKPIs.length}</span>
+        </div>
+        <div class="space-y-3">
+          ${dueKPIs.map(k=>`
+          <div class="bg-white border-2 border-green-200 rounded-xl p-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-bold text-slate-800">${esc(k.title)}</div>
+                <div class="flex items-center gap-3 mt-1">
+                  <span class="badge ${typeBadgeClass(k.dataType)}">${typeLabel(k.dataType)}</span>
+                  <span class="text-xs text-slate-500">${repeatLabel(k)}</span>
+                  ${k.hasTarget?`<span class="text-xs text-slate-500">Target: <strong>${fmtVal(k,k.target)}</strong></span>`:''}
+                </div>
+                ${k.description?`<p class="text-xs text-slate-500 mt-1">${esc(k.description)}</p>`:''}
+              </div>
+              <button onclick="openRecordModal('${k.id}')" class="btn-primary text-sm px-5 py-2.5 flex-shrink-0 ml-4">Record Now</button>
+            </div>
+          </div>`).join('')}
+        </div>
+      </div>`:''}
+
+      <!-- All Other KPIs -->
+      <div>
+        <div class="flex items-center gap-2 mb-3">
+          <h2 class="font-bold text-slate-800">All KPIs</h2>
+          <span class="text-xs text-slate-400">Record for any date</span>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          ${kpis.map(k=>{
+            const recorded=App.hasRecordToday(k.id);
+            const lr=App.getLatestRecord(k.id);
+            return `<div class="flex items-center justify-between p-4 border-b border-slate-100 last:border-b-0">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 ${recorded?'bg-green-100':'bg-blue-100'} rounded-lg flex items-center justify-center flex-shrink-0">
+                  ${recorded?`<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>`:
+                  `<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>`}
+                </div>
+                <div class="min-w-0">
+                  <div class="font-semibold text-slate-800 text-sm">${esc(k.title)}</div>
+                  <div class="flex items-center gap-2 mt-0.5">
+                    <span class="badge ${typeBadgeClass(k.dataType)} text-xs">${typeLabel(k.dataType)}</span>
+                    <span class="text-xs text-slate-400">${repeatLabel(k)}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 flex-shrink-0 ml-4">
+                ${lr?`<span class="text-sm font-semibold text-slate-600">${fmtVal(k,lr.value)}</span>`:''}
+                ${recorded?`<span class="badge bg-green-100 text-green-700">Recorded Today</span>`:
+                `<button onclick="openRecordModal('${k.id}')" class="text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 px-4 py-1.5 rounded-lg font-medium transition-colors">Record</button>`}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────
+//  HISTORY VIEW
+// ─────────────────────────────────────────────────────
+function renderHistory(){
+  const pc=document.getElementById('page-content');
+  const kpis=App.kpis;
+  const allRecords=[...App.records].sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  let filtered=allRecords;
+  if(histKPIFilter)filtered=filtered.filter(r=>r.kpiId===histKPIFilter);
+  if(histDateFrom)filtered=filtered.filter(r=>r.date>=histDateFrom);
+  if(histDateTo)filtered=filtered.filter(r=>r.date<=histDateTo);
+
+  pc.innerHTML=`
+    <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <!-- Filters -->
+      <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap gap-3 items-center">
+        <select class="form-input w-auto" onchange="histKPIFilter=this.value;renderHistory()">
+          <option value="">All KPIs</option>
+          ${kpis.map(k=>`<option value="${k.id}" ${histKPIFilter===k.id?'selected':''}>${esc(k.title)}</option>`).join('')}
+        </select>
+        <input type="date" class="form-input w-auto" placeholder="From" value="${histDateFrom}" onchange="histDateFrom=this.value;renderHistory()">
+        <input type="date" class="form-input w-auto" placeholder="To" value="${histDateTo}" onchange="histDateTo=this.value;renderHistory()">
+        ${(histKPIFilter||histDateFrom||histDateTo)?`<button onclick="histKPIFilter='';histDateFrom='';histDateTo='';renderHistory();" class="btn-secondary text-xs px-3 py-2">Clear Filters</button>`:''}
+        <div class="ml-auto text-sm text-slate-500">${filtered.length} record${filtered.length!==1?'s':''}</div>
+      </div>
+
+      ${filtered.length===0?`<div class="empty-state py-16">
+        <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3"/></svg>
+        <p class="text-slate-400">No records found</p>
+      </div>`:
+      `<div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr>
+            <th class="text-left px-5 py-3">Date</th>
+            <th class="text-left px-4 py-3">KPI</th>
+            <th class="text-left px-4 py-3">Type</th>
+            <th class="text-left px-4 py-3">Value</th>
+            <th class="text-left px-4 py-3">Target</th>
+            <th class="text-left px-4 py-3">Status</th>
+            <th class="text-left px-4 py-3">Remarks</th>
+            <th class="text-right px-5 py-3">Action</th>
+          </tr></thead>
+          <tbody>
+            ${filtered.map(r=>{
+              const k=App.getKPIById(r.kpiId);
+              if(!k)return '';
+              const pct=achievementPct(k,r.value);
+              const st=statusLabel(pct);
+              return `<tr class="border-t border-slate-100">
+                <td class="px-5 py-3 text-slate-600 whitespace-nowrap">${fmtDate(r.date)}</td>
+                <td class="px-4 py-3 font-medium text-slate-800">${esc(k.title)}</td>
+                <td class="px-4 py-3"><span class="badge ${typeBadgeClass(k.dataType)}">${typeLabel(k.dataType)}</span></td>
+                <td class="px-4 py-3 font-bold text-blue-700">${fmtVal(k,r.value)}</td>
+                <td class="px-4 py-3 text-slate-500">${k.hasTarget?fmtVal(k,k.target):'—'}</td>
+                <td class="px-4 py-3"><span class="badge ${st.cls}">${st.label}</span></td>
+                <td class="px-4 py-3 text-slate-500 max-w-xs"><div class="truncate" title="${esc(r.remarks||'')}">${esc(r.remarks||'—')}</div></td>
+                <td class="px-5 py-3 text-right"><button onclick="confirmDeleteRecord('${r.id}')" class="btn-danger py-1 text-xs">Delete</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`}
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────
+//  MODAL: RECORD ENTRY
+// ─────────────────────────────────────────────────────
+function openRecordModal(kpiId){
+  const k=App.getKPIById(kpiId);
+  if(!k)return;
+  const lr=App.getLatestRecord(kpiId);
+
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML=`
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h3 class="font-bold text-slate-800 text-lg">${esc(k.title)}</h3>
+          <p class="text-sm text-slate-500 mt-0.5">Record a new entry</p>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">✕</button>
+      </div>
+
+      <div class="space-y-2 mb-5 bg-slate-50 rounded-xl p-4 text-sm">
+        <div class="flex justify-between"><span class="text-slate-500">Type:</span><span class="font-medium">${typeLabel(k.dataType)}</span></div>
+        <div class="flex justify-between"><span class="text-slate-500">Frequency:</span><span class="font-medium">${repeatLabel(k)}</span></div>
+        ${k.hasTarget?`<div class="flex justify-between"><span class="text-slate-500">Target:</span><span class="font-medium text-blue-700">${fmtVal(k,k.target)}</span></div>`:''}
+        ${lr?`<div class="flex justify-between"><span class="text-slate-500">Last Value:</span><span class="font-medium">${fmtVal(k,lr.value)} <span class="text-slate-400">(${fmtDate(lr.date)})</span></span></div>`:''}
+      </div>
+
+      <form onsubmit="submitRecord(event,'${kpiId}')">
+        <!-- Date -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Date <span class="text-red-500">*</span></label>
+          <input type="date" id="r-date" class="form-input" value="${App.todayStr()}" required>
+        </div>
+
+        <!-- Value -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Value <span class="text-red-500">*</span></label>
+          ${k.dataType==='yes_no'?`
+          <div class="flex gap-3">
+            <button type="button" id="r-yes-btn" onclick="setYesNo(true)" class="flex-1 py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold hover:border-green-400 hover:bg-green-50 transition-colors">
+              ✓ Yes
+            </button>
+            <button type="button" id="r-no-btn" onclick="setYesNo(false)" class="flex-1 py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold hover:border-red-400 hover:bg-red-50 transition-colors">
+              ✕ No
+            </button>
+          </div>
+          <input type="hidden" id="r-value" value="">`:
+          `<input type="number" id="r-value" class="form-input" placeholder="${k.dataType==='percentage'?'e.g., 85.5':'e.g., 1500'}" step="${k.dataType==='percentage'?'0.1':'any'}" ${k.dataType==='percentage'?'min="0" max="100"':''} required>`}
+        </div>
+
+        ${k.hasRemarks?`
+        <!-- Remarks -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Remarks</label>
+          <textarea id="r-remarks" class="form-input" rows="2" placeholder="Add any notes or context..."></textarea>
+        </div>`:''}
+
+        <div class="flex gap-3 pt-2">
+          <button type="submit" class="btn-primary flex-1 py-2.5">Save Record</button>
+          <button type="button" onclick="closeModal()" class="btn-secondary px-5">Cancel</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function setYesNo(val){
+  document.getElementById('r-value').value=val?'true':'false';
+  const yBtn=document.getElementById('r-yes-btn');
+  const nBtn=document.getElementById('r-no-btn');
+  yBtn.className=`flex-1 py-3 rounded-xl border-2 text-sm font-semibold transition-colors ${val?'border-green-500 bg-green-50 text-green-700':'border-slate-200 hover:border-green-400 hover:bg-green-50'}`;
+  nBtn.className=`flex-1 py-3 rounded-xl border-2 text-sm font-semibold transition-colors ${!val?'border-red-500 bg-red-50 text-red-700':'border-slate-200 hover:border-red-400 hover:bg-red-50'}`;
+}
+
+function submitRecord(e,kpiId){
+  e.preventDefault();
+  const k=App.getKPIById(kpiId);
+  const date=document.getElementById('r-date').value;
+  const rawVal=document.getElementById('r-value').value;
+  const remarks=document.getElementById('r-remarks')?.value.trim()||'';
+
+  if(!date){toast('Please select a date','error');return;}
+  if(!rawVal&&rawVal!=='false'){toast('Please enter a value','error');return;}
+
+  let value;
+  if(k.dataType==='yes_no')value=rawVal==='true';
+  else value=parseFloat(rawVal);
+
+  App.createRecord({kpiId,value,remarks,date});
+  closeModal();
+  toast('Record saved!');
+  updateNav();
+  if(currentView==='record-entry')renderRecordEntry();
+  else if(currentView==='history')renderHistory();
+  else if(currentView==='dashboard')renderDashboard();
+  else if(currentView==='kpi-list')renderKPIList();
+}
+
+// ─────────────────────────────────────────────────────
+//  CONFIRM DIALOGS
+// ─────────────────────────────────────────────────────
+function confirmDeleteKPI(id){
+  const k=App.getKPIById(id);
+  if(!k)return;
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML=`
+    <div class="p-6 text-center">
+      <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </div>
+      <h3 class="font-bold text-slate-800 text-lg mb-2">Delete KPI?</h3>
+      <p class="text-slate-500 mb-1">Are you sure you want to delete <strong>"${esc(k.title)}"</strong>?</p>
+      <p class="text-red-500 text-sm mb-6">This will also delete all ${App.getRecordsByKPI(id).length} records. This action cannot be undone.</p>
+      <div class="flex gap-3">
+        <button onclick="doDeleteKPI('${id}')" class="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-semibold hover:bg-red-700 transition-colors">Yes, Delete</button>
+        <button onclick="closeModal()" class="flex-1 btn-secondary py-2.5">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function doDeleteKPI(id){
+  App.deleteKPI(id);
+  closeModal();
+  toast('KPI deleted','error');
+  renderPage();
+  updateNav();
+}
+
+function confirmDeleteRecord(id){
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML=`
+    <div class="p-6 text-center">
+      <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+      </div>
+      <h3 class="font-bold text-slate-800 text-lg mb-2">Delete Record?</h3>
+      <p class="text-slate-500 mb-6">This record will be permanently deleted.</p>
+      <div class="flex gap-3">
+        <button onclick="doDeleteRecord('${id}')" class="flex-1 bg-red-600 text-white py-2.5 rounded-xl font-semibold hover:bg-red-700">Yes, Delete</button>
+        <button onclick="closeModal()" class="flex-1 btn-secondary py-2.5">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+function doDeleteRecord(id){
+  App.deleteRecord(id);
+  closeModal();
+  toast('Record deleted');
+  renderPage();
+}
+
+function closeModal(){document.getElementById('modal-overlay').classList.add('hidden');}
+function closeModalOnOverlay(e){if(e.target===document.getElementById('modal-overlay'))closeModal();}
+
+// ─────────────────────────────────────────────────────
+//  DEMO DATA
+// ─────────────────────────────────────────────────────
+function loadDemoData(){
+  if(App.kpis.length>0){
+    const mc=document.getElementById('modal-content');
+    mc.innerHTML=`
+      <div class="p-6 text-center">
+        <h3 class="font-bold text-slate-800 text-lg mb-2">Load Demo Data?</h3>
+        <p class="text-slate-500 mb-6">This will add demo KPIs and records to your current data.</p>
+        <div class="flex gap-3">
+          <button onclick="doLoadDemo()" class="flex-1 btn-primary py-2.5">Yes, Load Demo</button>
+          <button onclick="closeModal()" class="flex-1 btn-secondary py-2.5">Cancel</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+  } else {
+    doLoadDemo();
+  }
+}
+
+function doLoadDemo(){
+  closeModal();
+  const kpiDefs=[
+    {title:'Daily Sales Revenue',description:'Total revenue generated per day',dataType:'number',hasTarget:true,target:50000,hasRemarks:true,repeatOn:'daily',repeatDay:null},
+    {title:'Customer Satisfaction Score',description:'Average CSAT score from feedback',dataType:'percentage',hasTarget:true,target:90,hasRemarks:true,repeatOn:'weekly',repeatDay:'1'},
+    {title:'Website Uptime',description:'Percentage of time site is operational',dataType:'percentage',hasTarget:true,target:99.9,hasRemarks:false,repeatOn:'monthly',repeatDay:'1'},
+    {title:'New Clients Acquired',description:'Number of new paying customers',dataType:'number',hasTarget:true,target:20,hasRemarks:true,repeatOn:'monthly',repeatDay:'28'},
+    {title:'Daily Stand-up Completed',description:'Was the team stand-up meeting done?',dataType:'yes_no',hasTarget:false,target:null,hasRemarks:false,repeatOn:'daily',repeatDay:null},
+    {title:'Quarterly Revenue',description:'Total quarterly business revenue',dataType:'number',hasTarget:true,target:4000000,hasRemarks:true,repeatOn:'quarterly',repeatDay:'1'},
+    {title:'Employee Satisfaction Index',description:'Annual employee happiness score',dataType:'percentage',hasTarget:true,target:80,hasRemarks:true,repeatOn:'yearly',repeatDay:'01-15'},
+    {title:'Support Tickets Resolved',description:'Weekly count of resolved support tickets',dataType:'number',hasTarget:true,target:200,hasRemarks:false,repeatOn:'weekly',repeatDay:'5'},
+  ];
+
+  const createdKPIs=kpiDefs.map(def=>App.createKPI(def));
+
+  // Generate records for the past 90 days
+  const now=new Date();
+  const recDefs=[];
+
+  // Daily KPIs — generate for last 30 days
+  ['Daily Sales Revenue','Daily Stand-up Completed'].forEach(title=>{
+    const k=createdKPIs.find(c=>c.title===title);
+    if(!k)return;
+    for(let i=29;i>=0;i--){
+      const d=new Date(now);d.setDate(d.getDate()-i);
+      const dateStr=d.toISOString().slice(0,10);
+      if(k.dataType==='yes_no'){
+        recDefs.push({kpiId:k.id,value:Math.random()>0.15,remarks:'',date:dateStr});
+      } else {
+        const base=k.target?parseFloat(k.target):50000;
+        const variance=0.3;
+        const val=Math.round(base*(0.7+Math.random()*variance*2));
+        recDefs.push({kpiId:k.id,value:val,remarks:i%7===0?'End of week review':'',date:dateStr});
+      }
+    }
+  });
+
+  // Weekly KPIs — generate for last 12 weeks
+  ['Customer Satisfaction Score','Support Tickets Resolved'].forEach(title=>{
+    const k=createdKPIs.find(c=>c.title===title);
+    if(!k)return;
+    for(let w=11;w>=0;w--){
+      const d=new Date(now);d.setDate(d.getDate()-w*7);
+      const dateStr=d.toISOString().slice(0,10);
+      const base=k.target?parseFloat(k.target):100;
+      const val=k.dataType==='percentage'?Math.round((base*0.8+Math.random()*base*0.3)*10)/10:Math.round(base*(0.75+Math.random()*0.35));
+      recDefs.push({kpiId:k.id,value:val,remarks:'',date:dateStr});
+    }
+  });
+
+  // Monthly KPIs — last 6 months
+  ['Website Uptime','New Clients Acquired'].forEach(title=>{
+    const k=createdKPIs.find(c=>c.title===title);
+    if(!k)return;
+    for(let m=5;m>=0;m--){
+      const d=new Date(now.getFullYear(),now.getMonth()-m,1);
+      const dateStr=d.toISOString().slice(0,10);
+      const base=k.target?parseFloat(k.target):100;
+      const val=k.dataType==='percentage'?Math.round((base*0.9+Math.random()*base*0.15)*10)/10:Math.round(base*(0.6+Math.random()*0.6));
+      recDefs.push({kpiId:k.id,value:val,remarks:'',date:dateStr});
+    }
+  });
+
+  // Quarterly KPI
+  const qk=createdKPIs.find(c=>c.title==='Quarterly Revenue');
+  if(qk){
+    [0,3,6,9].forEach((mo,qi)=>{
+      if(qi<3){
+        const d=new Date(now.getFullYear(),mo,1);
+        const dateStr=d.toISOString().slice(0,10);
+        const val=Math.round(parseFloat(qk.target)*(0.8+Math.random()*0.4));
+        recDefs.push({kpiId:qk.id,value:val,remarks:`Q${qi+1} close`,date:dateStr});
+      }
+    });
+  }
+
+  // Yearly KPI
+  const yk=createdKPIs.find(c=>c.title==='Employee Satisfaction Index');
+  if(yk){
+    recDefs.push({kpiId:yk.id,value:78,remarks:'Annual survey completed',date:new Date(now.getFullYear(),0,15).toISOString().slice(0,10)});
+  }
+
+  recDefs.forEach(r=>App.createRecord(r));
+  toast(`Loaded ${createdKPIs.length} KPIs and ${recDefs.length} sample records!`,'info');
+  renderPage();
+  updateNav();
+}
+
+// ─────────────────────────────────────────────────────
+//  LOGOUT
+// ─────────────────────────────────────────────────────
+function handleLogout(){
+  App.logout();
+  toast('Logged out successfully');
+  setTimeout(()=>{window.location.href='login.html';},500);
+}
+
+// ─────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',async ()=>{
+  if(!App.currentUser){
+    window.location.href='login.html';
+    return;
+  }
+  const user=App.currentUser;
+  const userNameEl=document.getElementById('user-name');
+  const userAvatarEl=document.getElementById('user-avatar');
+  if(userNameEl)userNameEl.textContent=user.name;
+  if(userAvatarEl)userAvatarEl.textContent=user.name.charAt(0).toUpperCase();
+
+  // Load data from server
+  await App.loadAll();
+  updateNav();
+  renderPage();
+});
+</script>
+</body>
+</html>
