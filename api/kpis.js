@@ -71,15 +71,15 @@ export default async function handler(req, res) {
   }
   
   else if (req.method === 'PUT') {
-    const { id, name, title, target, unit, frequency, color } = req.body;
+    const { id, name, title, description, target, unit, frequency, color } = req.body;
     if (!id) {
       return res.status(400).json({ error: 'ID required' });
     }
     try {
       const kpiName = name || title;
       const result = await pool.query(
-        'UPDATE kpis SET name = COALESCE($1, name), target = COALESCE($2, target), unit = COALESCE($3, unit), frequency = COALESCE($4, frequency), color = COALESCE($5, color) WHERE id = $6 AND user_id = $7 RETURNING *',
-        [kpiName, target, unit, frequency, color, id, userId]
+        'UPDATE kpis SET name = $1, description = $2, target = COALESCE($3, target), unit = COALESCE($4, unit), frequency = COALESCE($5, frequency), color = COALESCE($6, color) WHERE id = $7 AND user_id = $8 RETURNING *',
+        [kpiName, description || '', target, unit, frequency, color, id, userId]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'KPI not found' });
