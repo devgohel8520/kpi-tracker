@@ -37,12 +37,34 @@ const Api = {
     return data;
   },
 
-  get kpis() { return this._request('/kpis'); },
-  
+  // Data storage
+  _kpis: [],
+  _records: [],
+
+  get kpis() { return this._kpis || []; },
+  set kpis(v) { this._kpis = v; },
+  get records() { return this._records || []; },
+  set records(v) { this._records = v; },
+
   async loadAll() {
-    return this._request('/kpis');
+    const kpis = await this._request('/kpis');
+    this._kpis = kpis || [];
+    
+    // Load all records
+    const allRecords = [];
+    if (kpis && kpis.length > 0) {
+      for (const kpi of kpis) {
+        try {
+          const recs = await this._request(`/records?kpi_id=${kpi.id}`);
+          if (recs) allRecords.push(...recs);
+        } catch (e) { }
+      }
+    }
+    this._records = allRecords;
+    return kpis;
   },
 
+  // For app.html compatibility
   async saveKPI(data) {
     if (data.id) {
       return this._request('/kpis', {
@@ -56,20 +78,38 @@ const Api = {
     });
   },
 
+  createKPI(data) {
+    const kpi = { 
+      ...data, 
+      isActive: true, 
+      createdAt: new Date().toISOString() 
+    };
+    return this.saveKPI(kpi);
+  },
+
+  updateKPI(id, data) {
+    return this.saveKPI({ ...data, id });
+  },
+
   async deleteKPI(id) {
     return this._request(`/kpis?id=${id}`, {
       method: 'DELETE'
     });
   },
 
-  async getRecords(kpiId) {
-    return this._request(`/records?kpi_id=${kpiId}`);
+  // Create/save record
+  createRecord(data) {
+    return this.saveRecord(data);
   },
 
   async saveRecord(data) {
     return this._request('/records', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify({
+        kpi_id: data.kpiId || data.kpi_id,
+        value: data.value,
+        recorded_at: data.date || data.recorded_at
+      })
     });
   },
 
@@ -77,6 +117,27 @@ const Api = {
     return this._request(`/records?id=${id}`, {
       method: 'DELETE'
     });
+  },
+
+  // For app.html compatibility
+  todayStr() { return new Date().toISOString().slice(0, 10); },
+
+  hasRecordToday(kpiId) {
+    const today = this.todayStr();
+    return this._records.some(r => (r.kpi_id || r.kpiId) === kpiId && r.recorded_at && r.recorded_at.slice(0, 10) === today);
+  },
+
+  getRecordsByKPI(kpiId) {
+    return this._records.filter(r => (r.kpi_id || r.kpiId) === kpiId).sort((a, b) => new Date(a.recorded_at) - new Date(b.recorded_at));
+  },
+
+  getLatestRecord(kpiId) {
+    const recs = this.getRecordsByKPI(kpiId);
+    return recs.length ? recs[recs.length - 1] : null;
+  },
+
+  getKPIById(id) {
+    return this._kpis.find(k => k.id === id);
   },
 
   async login(email, password, remember = false) {
