@@ -21,6 +21,7 @@ tailwind.config = {
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="neon-client.js"></script>
 <script src="common.js"></script>
 <style>
@@ -948,6 +949,10 @@ function renderHistory(){
         <input type="date" class="form-input w-auto" placeholder="From" value="${histDateFrom}" onchange="histDateFrom=this.value;renderHistory()">
         <input type="date" class="form-input w-auto" placeholder="To" value="${histDateTo}" onchange="histDateTo=this.value;renderHistory()">
         ${(histKPIFilter||histDateFrom||histDateTo)?`<button onclick="histKPIFilter='';histDateFrom='';histDateTo='';renderHistory();" class="btn-secondary text-xs px-3 py-2">Clear Filters</button>`:''}
+        <button onclick="exportHistoryPDF()" class="btn-primary text-xs px-3 py-2 flex items-center gap-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Export PDF
+        </button>
         <div class="ml-auto text-sm text-slate-500">${filtered.length} record${filtered.length!==1?'s':''}</div>
       </div>
 
@@ -955,8 +960,8 @@ function renderHistory(){
         <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2m-3 7h3m-3 4h3"/></svg>
         <p class="text-slate-400">No records found</p>
       </div>`:
-      `<div class="overflow-x-auto">
-        <table class="w-full text-sm">
+      `<div class="overflow-x-auto" id="history-table-container">
+        <table class="w-full text-sm" id="history-table">
           <thead><tr>
             <th class="text-left px-5 py-3">Date</th>
             <th class="text-left px-4 py-3">KPI</th>
@@ -965,7 +970,6 @@ function renderHistory(){
             <th class="text-left px-4 py-3">Target</th>
             <th class="text-left px-4 py-3">Status</th>
             <th class="text-left px-4 py-3">Remarks</th>
-            <th class="text-right px-5 py-3">Action</th>
           </tr></thead>
           <tbody>
             ${filtered.map(r=>{
@@ -981,7 +985,6 @@ function renderHistory(){
                 <td class="px-4 py-3 text-slate-500">${k.hasTarget?fmtVal(k,k.target):'—'}</td>
                 <td class="px-4 py-3"><span class="badge ${st.cls}">${st.label}</span></td>
                 <td class="px-4 py-3 text-slate-500 max-w-xs"><div class="truncate" title="${esc(r.remarks||'')}">${esc(r.remarks||'—')}</div></td>
-                <td class="px-5 py-3 text-right"><button onclick="confirmDeleteRecord('${r.id}')" class="btn-danger py-1 text-xs">Delete</button></td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -989,6 +992,22 @@ function renderHistory(){
       </div>`}
     </div>
   `;
+}
+
+function exportHistoryPDF(){
+  const table=document.getElementById('history-table');
+  if(!table){toast('No table to export','error');return;}
+  const kpiLabel=histKPIFilter?App.getKPIById(histKPIFilter)?.title:'All KPIs';
+  const fromDate=histDateFrom?fmtDate(histDateFrom):'All';
+  const toDate=histDateTo?fmtDate(histDateTo):'All';
+  const content=`<div style="font-family:Arial,sans-serif;padding:10px;">
+    <h2 style="color:#1e40af;margin:0 0 5px 0;">KPI Records Report</h2>
+    <p style="color:#64748b;margin:0;font-size:12px;">KPI: ${kpiLabel} | From: ${fromDate} | To: ${toDate}</p>
+    ${table.outerHTML}
+  </div>`;
+  const opt={margin:10,filename:`kpi-records-${histDateFrom}-to-${histDateTo}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}};
+  html2pdf().set(opt).from(content).save();
+  toast('PDF exported successfully!');
 }
 
 // ─────────────────────────────────────────────────────
