@@ -237,8 +237,8 @@ let currentView='dashboard';
 let editingKPIId=null;
 let dashPeriod='monthly';
 let histKPIFilter='';
-let histDateFrom='';
-let histDateTo='';
+let histDateFrom=new Date().toISOString().slice(0,10);
+let histDateTo=new Date().toISOString().slice(0,10);
 let chartInstances={};
 
 function navigate(view,extra){
