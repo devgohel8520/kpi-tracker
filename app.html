@@ -941,7 +941,8 @@ function renderTodayReport(){
   const kpis=App.kpis.filter(k=>k.isActive);
   const dueKPIs=getDueKPIs();
   const todayRecs=App.records.filter(r=>r.date===todayStr);
-  const recordedKPIs=dueKPIs.filter(k=>App.hasRecordToday(k.id));
+  const recordedKPIs=todayRecs.map(r=>App.getKPIById(r.kpiId)).filter(k=>k&&k.isActive);
+  const uniqueRecorded=recordedKPIs.filter((k,idx,self)=>self.findIndex(x=>x.id===k.id)===idx);
   const notRecordedKPIs=dueKPIs.filter(k=>!App.hasRecordToday(k.id));
 
   pc.innerHTML=`
@@ -950,7 +951,7 @@ function renderTodayReport(){
       <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl px-6 py-5 flex items-center justify-between">
         <div>
           <h2 class="text-xl font-bold">${todayDate}</h2>
-          <p class="text-blue-200 text-sm mt-1">${kpis.length} total KPIs | ${dueKPIs.length} due today | ${recordedKPIs.length} recorded</p>
+          <p class="text-blue-200 text-sm mt-1">${kpis.length} total KPIs | ${uniqueRecorded.length} submitted today | ${notRecordedKPIs.length} pending</p>
         </div>
         <button onclick="exportTodayPDF()" class="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-50 transition-colors flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -965,26 +966,26 @@ function renderTodayReport(){
           <div class="text-sm text-slate-500">Total KPIs</div>
         </div>
         <div class="bg-white border border-slate-200 rounded-xl p-4">
-          <div class="text-2xl font-bold text-green-600">${recordedKPIs.length}</div>
-          <div class="text-sm text-slate-500">Recorded Today</div>
+          <div class="text-2xl font-bold text-green-600">${uniqueRecorded.length}</div>
+          <div class="text-sm text-slate-500">Submitted Today</div>
         </div>
         <div class="bg-white border border-slate-200 rounded-xl p-4">
           <div class="text-2xl font-bold text-amber-600">${notRecordedKPIs.length}</div>
           <div class="text-sm text-slate-500">Pending</div>
         </div>
         <div class="bg-white border border-slate-200 rounded-xl p-4">
-          <div class="text-2xl font-bold text-slate-800">${kpis.length-recordedKPIs.length}</div>
+          <div class="text-2xl font-bold text-slate-800">${kpis.length-uniqueRecorded.length-notRecordedKPIs.length}</div>
           <div class="text-sm text-slate-500">Not Due Today</div>
         </div>
       </div>
 
-      <!-- Recorded Section -->
-      ${recordedKPIs.length>0?`
+      <!-- Submitted Section -->
+      ${uniqueRecorded.length>0?`
       <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div class="px-5 py-4 bg-green-50 border-b border-green-100 flex items-center gap-2">
           <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <h3 class="font-semibold text-green-800">Recorded Today</h3>
-          <span class="badge bg-green-100 text-green-700">${recordedKPIs.length}</span>
+          <h3 class="font-semibold text-green-800">Submitted Today</h3>
+          <span class="badge bg-green-100 text-green-700">${uniqueRecorded.length}</span>
         </div>
         <table class="w-full text-sm" id="today-recorded-table">
           <thead><tr class="bg-slate-50">
@@ -997,7 +998,7 @@ function renderTodayReport(){
             <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Remarks</th>
           </tr></thead>
           <tbody>
-            ${recordedKPIs.map(k=>{
+            ${uniqueRecorded.map(k=>{
               const rec=todayRecs.find(r=>r.kpiId===k.id);
               const pct=rec?achievementPct(k,rec.value):null;
               const st=statusLabel(pct);
@@ -1060,8 +1061,8 @@ function exportTodayPDF(){
   let content=`<div style="font-family:Arial,sans-serif;padding:15px;">
     <h1 style="color:#1e40af;margin:0 0 10px 0;">Today's KPI Report</h1>
     <p style="color:#64748b;margin:0 0 15px 0;font-size:12px;">${todayDate}</p>`;
-  if(recordedTable)content+=`<h3 style="color:#16a34a;margin:0 0 10px 0;">✓ Recorded Today</h3>${recordedTable.outerHTML}`;
-  if(pendingTable)content+=`<h3 style="color:#d97706;margin:15px 0 10px 0;">⚠ Not Recorded Today</h3>${pendingTable.outerHTML}`;
+  if(recordedTable)content+=`<h3 style="color:#16a34a;margin:0 0 10px 0;">✓ Submitted Today</h3>${recordedTable.outerHTML}`;
+  if(pendingTable)content+=`<h3 style="color:#d97706;margin:15px 0 10px 0;">⚠ Pending</h3>${pendingTable.outerHTML}`;
   content+='</div>';
   const opt={margin:10,filename:`kpi-today-report.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}};
   html2pdf().set(opt).from(content).save();
