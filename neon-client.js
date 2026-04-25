@@ -60,8 +60,8 @@ const Api = {
                 id: r.id,
                 kpiId: Number(r.kpi_id),
                 value: Number(r.value),
-                date: r.recorded_at ? r.recorded_at.slice(0, 10) : null,
-                recordedAt: r.recorded_at,
+                date: r.recordedAt ? r.recordedAt.slice(0, 10) : null,
+                recordedAt: r.recordedAt,
                 remarks: r.remarks || ''
               });
             }
@@ -162,8 +162,8 @@ const Api = {
           id: result.id,
           kpiId: result.kpi_id,
           value: Number(result.value),
-          date: result.recorded_at ? result.recorded_at.slice(0, 10) : null,
-          recordedAt: result.recorded_at,
+          date: result.recordedAt ? result.recordedAt.slice(0, 10) : null,
+          recordedAt: result.recordedAt,
           remarks: result.remarks
         });
       }
