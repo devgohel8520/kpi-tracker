@@ -62,10 +62,26 @@ function isDueToday(kpi) {
   const dow = today.getDay();
   const dom = today.getDate();
   const mo = today.getMonth();
-  switch (kpi.frequency) {
+  switch (kpi.repeatOn) {
     case 'daily': return true;
     case 'weekly': return parseInt(kpi.repeatDay) === dow;
+    case 'fortnightly': {
+      if (parseInt(kpi.repeatDay) !== dow) return false;
+      const created = new Date(kpi.createdAt);
+      const diffDays = Math.floor((today - created) / (1000 * 60 * 60 * 24));
+      return Math.floor(diffDays / 7) % 2 === 0;
+    }
     case 'monthly': return parseInt(kpi.repeatDay) === dom;
+    case 'quarterly': {
+      const qMonth = [0, 3, 6, 9];
+      return qMonth.includes(mo) && dom === parseInt(kpi.repeatDay);
+    }
+    case 'half_yearly': return (mo === 0 || mo === 6) && dom === parseInt(kpi.repeatDay);
+    case 'yearly': {
+      if (!kpi.repeatDay) return false;
+      const [m, d] = kpi.repeatDay.split('-');
+      return parseInt(m) - 1 === mo && parseInt(d) === dom;
+    }
     default: return true;
   }
 }
@@ -94,7 +110,7 @@ function getRecordsInRange(kpiId, start, end) {
 }
 
 function achievementPct(kpi, val) {
-  if (!kpi.target) return null;
+  if (!kpi.hasTarget || !kpi.target) return null;
   if (kpi.dataType === 'yes_no') return val ? 100 : 0;
   const pct = (parseFloat(val) / parseFloat(kpi.target)) * 100;
   return Math.min(pct, 150);

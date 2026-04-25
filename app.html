@@ -727,7 +727,16 @@ function onDataTypeChange(){
     targetInput.parentElement.querySelector('label') && (targetInput.parentElement.style.display='none');
   } else {
     targetInput.type='number';
-    if(targetInput.parentElement)targetInput.parentElement.style.display='';
+    targetInput.parentElement.style.display='';
+    if(type==='percentage'){
+      targetInput.min='0';
+      targetInput.max='100';
+      targetInput.step='0.1';
+    } else {
+      targetInput.min=null;
+      targetInput.max=null;
+      targetInput.step='any';
+    }
   }
 }
 
