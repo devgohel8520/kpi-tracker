@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const result = await pool.query(
-        'SELECT * FROM kpis WHERE user_id = $1 ORDER BY created_at DESC',
+        'SELECT * FROM kpis WHERE user_id = $1 ORDER BY created_at ASC',
         [userId]
       );
       const rows = result.rows.map(r => ({
