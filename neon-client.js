@@ -38,14 +38,14 @@ const Api = {
       id: Number(k.id),
       title: k.name || '',
       name: k.name || '',
-      description: k.description || '',  // Already in select *
-      dataType: 'number',
-      hasTarget: !!k.target,
+      description: k.description || '',
+      dataType: k.data_type || 'number',
+      hasTarget: k.has_target || !!k.target,
       target: Number(k.target) || 0,
-      repeatOn: 'daily',
-      repeatDay: null,
+      repeatOn: k.repeat_on || 'daily',
+      repeatDay: k.repeat_day || null,
       isActive: true,
-      hasRemarks: true,  // Default true for visibility
+      hasRemarks: k.has_remarks || false,
       createdAt: k.created_at
     }));
     
@@ -90,13 +90,14 @@ const Api = {
           id: Number(result.id),
           title: result.name,
           name: result.name,
-          description: result.description || '',  // Added
-          dataType: 'number',
-          hasTarget: !!result.target,
+          description: result.description || '',
+          dataType: result.data_type || 'number',
+          hasTarget: result.has_target || !!result.target,
           target: Number(result.target) || 0,
-          repeatOn: 'daily',
+          repeatOn: result.repeat_on || 'daily',
+          repeatDay: result.repeat_day || null,
           isActive: true,
-          hasRemarks: true,  // Also default
+          hasRemarks: result.has_remarks || false,
           createdAt: result.created_at
         });
       }
