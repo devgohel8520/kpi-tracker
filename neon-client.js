@@ -56,13 +56,23 @@ const Api = {
           const recs = await this._request(`/records?kpi_id=${kpi.id}`);
           if (recs && recs.length > 0) {
             for (const r of recs) {
-              const recDate = r.recordedAt || r.recorded_at || r.date;
+              const rawDate = r.recordedAt || r.recorded_at || r.date;
+              let dateStr = null;
+              if (rawDate) {
+                if (typeof rawDate === 'string') {
+                  dateStr = rawDate.includes('T') ? rawDate.slice(0, 10) : rawDate;
+                } else if (rawDate instanceof Date) {
+                  dateStr = rawDate.toISOString().slice(0, 10);
+                } else {
+                  dateStr = String(rawDate).slice(0, 10);
+                }
+              }
               this._records.push({
                 id: r.id,
                 kpiId: Number(r.kpi_id),
                 value: Number(r.value),
-                date: recDate ? (typeof recDate === 'string' ? recDate.slice(0, 10) : new Date(recDate).toISOString().slice(0, 10)) : null,
-                recordedAt: recDate,
+                date: dateStr,
+                recordedAt: rawDate,
                 remarks: r.remarks || ''
               });
             }
@@ -159,13 +169,23 @@ const Api = {
     };
     return this._request('/records', {method: 'POST', body: JSON.stringify(recData)}).then(result => {
       if (result) {
-        const recDate = result.recordedAt || result.recorded_at;
+        const rawDate = result.recordedAt || result.recorded_at;
+        let dateStr = null;
+        if (rawDate) {
+          if (typeof rawDate === 'string') {
+            dateStr = rawDate.includes('T') ? rawDate.slice(0, 10) : rawDate;
+          } else if (rawDate instanceof Date) {
+            dateStr = rawDate.toISOString().slice(0, 10);
+          } else {
+            dateStr = String(rawDate).slice(0, 10);
+          }
+        }
         this._records.push({
           id: result.id,
           kpiId: result.kpi_id,
           value: Number(result.value),
-          date: recDate ? (typeof recDate === 'string' ? recDate.slice(0, 10) : new Date(recDate).toISOString().slice(0, 10)) : null,
-          recordedAt: recDate,
+          date: dateStr,
+          recordedAt: rawDate,
           remarks: result.remarks
         });
       }
@@ -200,12 +220,18 @@ const Api = {
     return recs.length > 0 ? recs[recs.length - 1] : null;
   },
 
-  todayStr() { return new Date().toISOString().slice(0, 10); },
+  todayStr() { 
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const localDate = new Date(now.getTime() - offset * 60000);
+    return localDate.toISOString().slice(0, 10); 
+  },
 
   hasRecordToday(kpiId) {
     const today = this.todayStr();
     const numId = Number(kpiId);
-    const rec = this._records.find(r => (r.kpiId === kpiId || r.kpiId === numId) && r.date === today);
+    const recs = this._records.filter(r => r.kpiId === kpiId || r.kpiId === numId);
+    const rec = recs.find(r => r.date && r.date.slice(0, 10) === today);
     return !!rec;
   },
 
