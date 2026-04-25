@@ -50,8 +50,8 @@ export default async function handler(req, res) {
     }
     try {
       const result = await pool.query(
-        'INSERT INTO kpis (user_id, name, description, target, data_type, has_target, has_remarks) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-        [userId, kpiName, description || '', target || 0, dataType || 'number', hasTarget || false, hasRemarks || false]
+        'INSERT INTO kpis (user_id, name, description, target, data_type, has_target, has_remarks, repeat_on, repeat_day) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+        [userId, kpiName, description || '', target || 0, dataType || 'number', hasTarget === true, hasRemarks === true, repeatOn || 'daily', repeatDay || null]
       );
       res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     try {
       const result = await pool.query(
         'UPDATE kpis SET name = $1, description = $2, target = $3, data_type = $4, has_target = $5, has_remarks = $6, repeat_on = $7, repeat_day = $8 WHERE id = $9 AND user_id = $10 RETURNING *',
-        [name || title, description || '', target || 0, dataType || 'number', hasTarget || false, hasRemarks || false, repeatOn || 'daily', repeatDay || null, id, userId]
+        [name || title, description || '', target || 0, dataType || 'number', hasTarget === true, hasRemarks === true, repeatOn || 'daily', repeatDay || null, id, userId]
       );
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'KPI not found' });

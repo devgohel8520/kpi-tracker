@@ -40,12 +40,12 @@ const Api = {
       name: k.name || '',
       description: k.description || '',
       dataType: k.data_type || 'number',
-      hasTarget: k.has_target || !!k.target,
+      hasTarget: k.has_target === true,
       target: Number(k.target) || 0,
       repeatOn: k.repeat_on || 'daily',
       repeatDay: k.repeat_day || null,
       isActive: true,
-      hasRemarks: k.has_remarks || false,
+      hasRemarks: k.has_remarks === true,
       createdAt: k.created_at
     }));
     
@@ -92,12 +92,12 @@ const Api = {
           name: result.name,
           description: result.description || '',
           dataType: result.data_type || 'number',
-          hasTarget: result.has_target || !!result.target,
+          hasTarget: result.has_target === true,
           target: Number(result.target) || 0,
           repeatOn: result.repeat_on || 'daily',
           repeatDay: result.repeat_day || null,
           isActive: true,
-          hasRemarks: result.has_remarks || false,
+          hasRemarks: result.has_remarks === true,
           createdAt: result.created_at
         });
       }
@@ -116,7 +116,22 @@ const Api = {
     return this.saveKPI({...data, id}).then(result => {
       if (result) {
         const idx = this._kpis.findIndex(k => Number(k.id) === Number(id));
-        if (idx >= 0) this._kpis[idx] = {...this._kpis[idx], ...result, title: result.name, id: Number(result.id)};
+        if (idx >= 0) {
+          this._kpis[idx] = {
+            ...this._kpis[idx],
+            id: Number(result.id),
+            title: result.name,
+            name: result.name,
+            description: result.description || '',
+            dataType: result.data_type || 'number',
+            hasTarget: result.has_target === true,
+            target: Number(result.target) || 0,
+            repeatOn: result.repeat_on || 'daily',
+            repeatDay: result.repeat_day || null,
+            hasRemarks: result.has_remarks === true,
+            createdAt: result.created_at
+          };
+        }
       }
       return result;
     });
