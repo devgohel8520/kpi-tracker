@@ -1238,7 +1238,7 @@ function submitRecord(e,kpiId){
   if(!rawVal&&rawVal!=='false'){toast('Please enter a value','error');return;}
 
   let value;
-  if(k.dataType==='yes_no')value=rawVal==='true';
+  if(k.dataType==='yes_no')value=rawVal==='true'?1:0;
   else value=parseFloat(rawVal);
 
   App.createRecord({kpiId,value,remarks,date}).then(() => {
