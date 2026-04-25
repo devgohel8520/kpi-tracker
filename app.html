@@ -1191,14 +1191,13 @@ function openRecordModal(kpiId){
         <p class="text-slate-500 mt-2">This KPI has already been recorded for today.</p>
         <button onclick="closeModal()" class="btn-secondary mt-4 px-6 py-2">Close</button>
       </div>
-      `:`<form onsubmit="submitRecord(event,'${kpiId}')">
-        <!-- Date -->
+      `:
+      `<form onsubmit="submitRecord(event,'${''+kpiId}')">
         <div class="mb-4">
           <label class="block text-sm font-semibold text-slate-700 mb-1.5">Date <span class="text-red-500">*</span></label>
           <input type="date" id="r-date" class="form-input" value="${App.todayStr()}" required>
         </div>
 
-        <!-- Value -->
         <div class="mb-4">
           <label class="block text-sm font-semibold text-slate-700 mb-1.5">Value <span class="text-red-500">*</span></label>
           ${k.dataType==='yes_no'?`
@@ -1215,7 +1214,6 @@ function openRecordModal(kpiId){
         </div>
 
         ${k.hasRemarks?`
-        <!-- Remarks -->
         <div class="mb-4">
           <label class="block text-sm font-semibold text-slate-700 mb-1.5">Remarks</label>
           <textarea id="r-remarks" class="form-input" rows="2" placeholder="Add any notes or context..."></textarea>
@@ -1225,7 +1223,7 @@ function openRecordModal(kpiId){
           <button type="submit" class="btn-primary flex-1 py-2.5">Save Record</button>
           <button type="button" onclick="closeModal()" class="btn-secondary px-5">Cancel</button>
         </div>
-      </form>`:''}
+      </form>`}
     </div>
   `;
   document.getElementById('modal-overlay').classList.remove('hidden');
