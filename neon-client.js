@@ -56,12 +56,13 @@ const Api = {
           const recs = await this._request(`/records?kpi_id=${kpi.id}`);
           if (recs && recs.length > 0) {
             for (const r of recs) {
+              const recDate = r.recordedAt || r.recorded_at || r.date;
               this._records.push({
                 id: r.id,
                 kpiId: Number(r.kpi_id),
                 value: Number(r.value),
-                date: r.recordedAt ? r.recordedAt.slice(0, 10) : null,
-                recordedAt: r.recordedAt,
+                date: recDate ? (typeof recDate === 'string' ? recDate.slice(0, 10) : new Date(recDate).toISOString().slice(0, 10)) : null,
+                recordedAt: recDate,
                 remarks: r.remarks || ''
               });
             }
@@ -158,12 +159,13 @@ const Api = {
     };
     return this._request('/records', {method: 'POST', body: JSON.stringify(recData)}).then(result => {
       if (result) {
+        const recDate = result.recordedAt || result.recorded_at;
         this._records.push({
           id: result.id,
           kpiId: result.kpi_id,
           value: Number(result.value),
-          date: result.recordedAt ? result.recordedAt.slice(0, 10) : null,
-          recordedAt: result.recordedAt,
+          date: recDate ? (typeof recDate === 'string' ? recDate.slice(0, 10) : new Date(recDate).toISOString().slice(0, 10)) : null,
+          recordedAt: recDate,
           remarks: result.remarks
         });
       }
