@@ -1064,7 +1064,7 @@ function exportTodayPDF(){
   if(recordedTable)content+=`<h3 style="color:#16a34a;margin:0 0 10px 0;">✓ Submitted Today</h3>${recordedTable.outerHTML}`;
   if(pendingTable)content+=`<h3 style="color:#d97706;margin:15px 0 10px 0;">⚠ Pending</h3>${pendingTable.outerHTML}`;
   content+='</div>';
-  const opt={margin:10,filename:`kpi-today-report.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}};
+  const opt={margin:10,filename:`kpi-today-report.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};
   html2pdf().set(opt).from(content).save();
   toast('PDF exported successfully!');
 }
@@ -1149,7 +1149,7 @@ function exportHistoryPDF(){
     <p style="color:#64748b;margin:0;font-size:12px;">KPI: ${kpiLabel} | From: ${fromDate} | To: ${toDate}</p>
     ${table.outerHTML}
   </div>`;
-  const opt={margin:10,filename:`kpi-records-${histDateFrom}-to-${histDateTo}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'landscape'}};
+  const opt={margin:10,filename:`kpi-records-${histDateFrom}-to-${histDateTo}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};
   html2pdf().set(opt).from(content).save();
   toast('PDF exported successfully!');
 }
