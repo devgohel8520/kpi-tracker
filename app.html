@@ -1364,71 +1364,75 @@ function openRecordModal(kpiId){
   const k=App.getKPIById(kpiId);
   if(!k)return;
   const lr=App.getLatestRecord(kpiId);
-  const todayRecords=App.records.filter(r=>r.kpiId===kpiId&&r.date===App.todayStr());
-  const hasTodayRecord=todayRecords.length>0;
 
   const mc=document.getElementById('modal-content');
-  mc.innerHTML=`
-    <div class="p-6">
-      <div class="flex items-center justify-between mb-5">
-        <div>
-          <h3 class="font-bold text-slate-800 text-lg">${esc(k.title)}</h3>
-          <p class="text-sm text-slate-500 mt-0.5">${hasTodayRecord?'Already recorded today':'Record a new entry'}</p>
-        </div>
-        <button onclick="closeModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">✕</button>
-      </div>
-
-      <div class="space-y-2 mb-5 bg-slate-50 rounded-xl p-4 text-sm">
-        <div class="flex justify-between"><span class="text-slate-500">Type:</span><span class="font-medium">${typeLabel(k.dataType)}</span></div>
-        <div class="flex justify-between"><span class="text-slate-500">Frequency:</span><span class="font-medium">${repeatLabel(k)}</span></div>
-        ${k.hasTarget?`<div class="flex justify-between"><span class="text-slate-500">Target:</span><span class="font-medium text-blue-700">${fmtVal(k,k.target)}</span></div>`:''}
-        ${lr?`<div class="flex justify-between"><span class="text-slate-500">Last Value:</span><span class="font-medium">${fmtVal(k,lr.value)} <span class="text-slate-400">(${fmtDate(lr.date)})</span></span></div>`:''}
-      </div>
-
-      ${hasTodayRecord?`
-      <div class="text-center py-8">
-        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-        </div>
-        <h4 class="font-semibold text-slate-800 text-lg">Already Submitted Today</h4>
-        <p class="text-slate-500 mt-2">This KPI has already been recorded for today.</p>
-        <button onclick="closeModal()" class="btn-secondary mt-4 px-6 py-2">Close</button>
-      </div>
-      `:
-      `<form onsubmit="submitRecord(event,'${''+kpiId}')">
-        <div class="mb-4">
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Date <span class="text-red-500">*</span></label>
-          <input type="date" id="r-date" class="form-input" value="${App.todayStr()}" required>
-        </div>
-
-        <div class="mb-4">
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Value <span class="text-red-500">*</span></label>
-          ${k.dataType==='yes_no'?`
-          <div class="flex gap-3">
-            <button type="button" id="r-yes-btn" onclick="setYesNo(true)" class="flex-1 py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold hover:border-green-400 hover:bg-green-50 transition-colors">
-              ✓ Yes
-            </button>
-            <button type="button" id="r-no-btn" onclick="setYesNo(false)" class="flex-1 py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold hover:border-red-400 hover:bg-red-50 transition-colors">
-              ✕ No
-            </button>
+  const renderModalContent=(selectedDate)=>{
+    const dateRecords=App.records.filter(r=>r.kpiId===kpiId&&r.date===selectedDate);
+    const hasRecord=dateRecords.length>0;
+    mc.innerHTML=`
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-5">
+          <div>
+            <h3 class="font-bold text-slate-800 text-lg">${esc(k.title)}</h3>
+            <p class="text-sm text-slate-500 mt-0.5">${hasRecord?'Entry exists for selected date':'Record a new entry'}</p>
           </div>
-          <input type="hidden" id="r-value" value="">`:
-          `<input type="number" id="r-value" class="form-input" placeholder="${k.dataType==='percentage'?'e.g., 85.5':'e.g., 1500'}" step="${k.dataType==='percentage'?'0.1':'any'}" ${k.dataType==='percentage'?'min="0" max="100"':''} required>`}
+          <button onclick="closeModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">✕</button>
         </div>
 
-        ${k.hasRemarks?`
-        <div class="mb-4">
-          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Remarks</label>
-          <textarea id="r-remarks" class="form-input" rows="2" placeholder="Add any notes or context..."></textarea>
-        </div>`:''}
-
-        <div class="flex gap-3 pt-2">
-          <button type="submit" class="btn-primary flex-1 py-2.5">Save Record</button>
-          <button type="button" onclick="closeModal()" class="btn-secondary px-5">Cancel</button>
+        <div class="space-y-2 mb-5 bg-slate-50 rounded-xl p-4 text-sm">
+          <div class="flex justify-between"><span class="text-slate-500">Type:</span><span class="font-medium">${typeLabel(k.dataType)}</span></div>
+          <div class="flex justify-between"><span class="text-slate-500">Frequency:</span><span class="font-medium">${repeatLabel(k)}</span></div>
+          ${k.hasTarget?`<div class="flex justify-between"><span class="text-slate-500">Target:</span><span class="font-medium text-blue-700">${fmtVal(k,k.target)}</span></div>`:''}
+          ${lr?`<div class="flex justify-between"><span class="text-slate-500">Last Value:</span><span class="font-medium">${fmtVal(k,lr.value)} <span class="text-slate-400">(${fmtDate(lr.date)})</span></span></div>`:''}
         </div>
-      </form>`}
-    </div>
-  `;
+
+        ${hasRecord?`
+        <div class="text-center py-8">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <h4 class="font-semibold text-slate-800 text-lg">Already Submitted</h4>
+          <p class="text-slate-500 mt-2">An entry already exists for this date.</p>
+          <button onclick="closeModal()" class="btn-secondary mt-4 px-6 py-2">Close</button>
+        </div>
+        `:
+        `<form onsubmit="submitRecord(event,'${kpiId}')">
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Date <span class="text-red-500">*</span></label>
+            <input type="date" id="r-date" class="form-input" value="${selectedDate}" onchange="renderRecordModalForDate('${kpiId}',this.value)" required>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Value <span class="text-red-500">*</span></label>
+            ${k.dataType==='yes_no'?`
+            <div class="flex gap-3">
+              <button type="button" id="r-yes-btn" onclick="setYesNo(true)" class="flex-1 py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold hover:border-green-400 hover:bg-green-50 transition-colors">
+                ✓ Yes
+              </button>
+              <button type="button" id="r-no-btn" onclick="setYesNo(false)" class="flex-1 py-3 rounded-xl border-2 border-slate-200 text-sm font-semibold hover:border-red-400 hover:bg-red-50 transition-colors">
+                ✕ No
+              </button>
+            </div>
+            <input type="hidden" id="r-value" value="">`:
+            `<input type="number" id="r-value" class="form-input" placeholder="${k.dataType==='percentage'?'e.g., 85.5':'e.g., 1500'}" step="${k.dataType==='percentage'?'0.1':'any'}" ${k.dataType==='percentage'?'min="0" max="100"':''} required>`}
+          </div>
+
+          ${k.hasRemarks?`
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Remarks</label>
+            <textarea id="r-remarks" class="form-input" rows="2" placeholder="Add any notes or context..."></textarea>
+          </div>`:''}
+
+          <div class="flex gap-3 pt-2">
+            <button type="submit" class="btn-primary flex-1 py-2.5">Save Record</button>
+            <button type="button" onclick="closeModal()" class="btn-secondary px-5">Cancel</button>
+          </div>
+        </form>`}
+      </div>
+    `;
+  };
+  renderModalContent(App.todayStr());
+  window.renderRecordModalForDate=renderModalContent;
   document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
@@ -1449,6 +1453,13 @@ function submitRecord(e,kpiId){
 
   if(!date){toast('Please select a date','error');return;}
   if(!rawVal&&rawVal!=='false'){toast('Please enter a value','error');return;}
+
+  const existingRec=App.records.find(r=>r.kpiId===kpiId&&r.date===date);
+  if(existingRec){
+    toast('Entry already exists for this date','error');
+    closeModal();
+    return;
+  }
 
   let value;
   if(k.dataType==='yes_no')value=rawVal==='true'?1:0;
