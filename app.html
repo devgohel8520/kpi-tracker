@@ -656,7 +656,15 @@ function renderCreateKPI(){
           <!-- Owner -->
           <div class="mb-5">
             <label class="block text-sm font-semibold text-slate-700 mb-1.5">Owner</label>
-            <input type="text" id="f-owner" class="form-input" placeholder="e.g., John, Sales Team" value="${esc(v('owner')||'')}">
+            <select id="f-owner" class="form-input">
+              <option value="">Select Owner</option>
+              <option value="Devendra" ${v('owner')==='Devendra'?'selected':''}>Devendra</option>
+              <option value="Juhi" ${v('owner')==='Juhi'?'selected':''}>Juhi</option>
+              <option value="Prakash" ${v('owner')==='Prakash'?'selected':''}>Prakash</option>
+              <option value="Krishna" ${v('owner')==='Krishna'?'selected':''}>Krishna</option>
+              <option value="Rahul" ${v('owner')==='Rahul'?'selected':''}>Rahul</option>
+              <option value="Other" ${v('owner')&&!['Devendra','Juhi','Prakash','Krishna','Rahul'].includes(v('owner'))?'selected':''}>Other</option>
+            </select>
           </div>
 
           <!-- Data Type -->
