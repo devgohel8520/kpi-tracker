@@ -1211,7 +1211,7 @@ function renderDateReport(){
           <span class="text-sm text-slate-500">${unowned.submitted.length} submitted | ${unowned.pending.length} pending</span>
         </div>
         ${unowned.submitted.length>0||unowned.pending.length>0?`
-        <table class="w-full text-sm">
+        <table class="w-full text-sm" id="date-table-Other">
           <thead><tr class="bg-slate-50">
             <th class="text-left px-5 py-2 text-xs font-semibold text-slate-500 uppercase">KPI</th>
             <th class="text-left px-4 py-2 text-xs font-semibold text-slate-500 uppercase">Type</th>
@@ -1252,13 +1252,20 @@ function renderDateReport(){
 
 function exportDateReportPDF(){
   const reportDate=new Date(selectedReportDate).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const recordedTable=document.getElementById('date-recorded-table');
-  const pendingTable=document.getElementById('date-pending-table');
+  const owners=['Devendra','Juhi','Prakash','Krishna','Rahul'];
   let content=`<div style="font-family:Arial,sans-serif;padding:15px;">
     <h1 style="color:#1e40af;margin:0 0 10px 0;">KPI Report - ${reportDate}</h1>
-    <p style="color:#64748b;margin:0 0 15px 0;font-size:12px;">Date-wise KPI Report</p>`;
-  if(recordedTable)content+=`<h3 style="color:#16a34a;margin:0 0 10px 0;">✓ Submitted</h3>${recordedTable.outerHTML}`;
-  if(pendingTable)content+=`<h3 style="color:#d97706;margin:15px 0 10px 0;">⚠ Pending</h3>${pendingTable.outerHTML}`;
+    <p style="color:#64748b;margin:0 0 15px 0;font-size:12px;">Date-wise KPI Report by Owner</p>`;
+  owners.forEach(owner=>{
+    const table=document.getElementById('date-table-'+owner);
+    if(table){
+      content+=`<h3 style="color:#374151;margin:15px 0 10px 0;font-weight:bold;">${owner}</h3>${table.outerHTML}`;
+    }
+  });
+  const unownedTable=document.getElementById('date-table-Other');
+  if(unownedTable){
+    content+=`<h3 style="color:#374151;margin:15px 0 10px 0;font-weight:bold;">Other / Unassigned</h3>${unownedTable.outerHTML}`;
+  }
   content+='</div>';
   const opt={margin:10,filename:`kpi-report-${selectedReportDate}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};
   html2pdf().set(opt).from(content).save();
