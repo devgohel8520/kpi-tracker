@@ -847,8 +847,11 @@ function submitKPIForm(e){
   const data={title,description,owner,dataType,hasTarget,target,hasRemarks,repeatOn,repeatDay};
 
   if(editingKPIId){
-    App.updateKPI(editingKPIId,data);
-    toast('KPI updated successfully!');
+    App.updateKPI(editingKPIId,data).then(() => { 
+      toast('KPI updated successfully!');
+      updateNav();
+      renderPage();
+    });
   } else {
     App.createKPI(data);
     toast('KPI created successfully!');

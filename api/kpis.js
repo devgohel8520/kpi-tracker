@@ -63,6 +63,7 @@ export default async function handler(req, res) {
   
   else if (req.method === 'PUT') {
     const { id, name, title, description, owner, target, dataType, hasTarget, hasRemarks, repeatOn, repeatDay } = req.body;
+    console.log('PUT update:', { id, name, description, owner, target, dataType, hasTarget, hasRemarks, repeatOn, repeatDay });
     if (!id) {
       return res.status(400).json({ error: 'ID required' });
     }

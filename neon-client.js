@@ -120,6 +120,7 @@ const Api = {
   },
 
   async saveKPI(data) {
+    console.log('saveKPI:', data);
     if (data.id) {
       return this._request('/kpis', {method: 'PUT', body: JSON.stringify(data)});
     }
