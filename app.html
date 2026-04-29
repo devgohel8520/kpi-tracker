@@ -653,6 +653,12 @@ function renderCreateKPI(){
             <textarea id="f-desc" class="form-input" rows="2" placeholder="Brief description of what this KPI measures...">${esc(v('description'))}</textarea>
           </div>
 
+          <!-- Owner -->
+          <div class="mb-5">
+            <label class="block text-sm font-semibold text-slate-700 mb-1.5">Owner</label>
+            <input type="text" id="f-owner" class="form-input" placeholder="e.g., John, Sales Team" value="${esc(v('owner')||'')}">
+          </div>
+
           <!-- Data Type -->
           <div class="mb-5">
             <label class="block text-sm font-semibold text-slate-700 mb-1.5">Data Type <span class="text-red-500">*</span></label>
@@ -818,6 +824,7 @@ function submitKPIForm(e){
   e.preventDefault();
   const title=document.getElementById('f-title').value.trim();
   const description=document.getElementById('f-desc').value.trim();
+  const owner=document.getElementById('f-owner').value.trim();
   const dataType=document.getElementById('f-type').value;
   const hasTarget=document.getElementById('f-has-target').checked;
   const target=hasTarget&&dataType!=='yes_no'?parseFloat(document.getElementById('f-target').value)||0:null;
@@ -829,7 +836,7 @@ function submitKPIForm(e){
   if(!title){toast('Title is required','error');return;}
   if(hasTarget&&dataType!=='yes_no'&&!document.getElementById('f-target').value){toast('Please enter a target value','error');return;}
 
-  const data={title,description,dataType,hasTarget,target,hasRemarks,repeatOn,repeatDay};
+  const data={title,description,owner,dataType,hasTarget,target,hasRemarks,repeatOn,repeatDay};
 
   if(editingKPIId){
     App.updateKPI(editingKPIId,data);

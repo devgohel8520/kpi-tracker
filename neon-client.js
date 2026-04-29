@@ -39,6 +39,7 @@ const Api = {
       title: k.name || '',
       name: k.name || '',
       description: k.description || '',
+      owner: k.owner || '',
       dataType: k.data_type || 'number',
       hasTarget: k.has_target === true,
       target: Number(k.target) || 0,
@@ -87,7 +88,8 @@ const Api = {
     const kpi = {
       title: data.title || data.name || '',
       name: data.title || data.name || '',
-      description: data.description || '',  // Added
+      description: data.description || '',
+      owner: data.owner || '',
       dataType: data.dataType || 'number',
       hasTarget: data.hasTarget === true,
       target: Number(data.target) || 0,
@@ -102,6 +104,7 @@ const Api = {
           title: result.name,
           name: result.name,
           description: result.description || '',
+          owner: result.owner || '',
           dataType: result.data_type || 'number',
           hasTarget: result.has_target === true,
           target: Number(result.target) || 0,
@@ -134,6 +137,7 @@ const Api = {
             title: result.name,
             name: result.name,
             description: result.description || '',
+            owner: result.owner || '',
             dataType: result.data_type || 'number',
             hasTarget: result.has_target === true,
             target: Number(result.target) || 0,

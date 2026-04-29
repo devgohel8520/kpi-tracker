@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS kpis (
     user_id VARCHAR(50) NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    owner VARCHAR(255),
     data_type VARCHAR(20) NOT NULL DEFAULT 'number',
     has_target BOOLEAN DEFAULT FALSE,
     target DECIMAL(15,4),
