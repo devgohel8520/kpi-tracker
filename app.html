@@ -832,7 +832,7 @@ function submitKPIForm(e){
   e.preventDefault();
   const title=document.getElementById('f-title').value.trim();
   const description=document.getElementById('f-desc').value.trim();
-  const owner=document.getElementById('f-owner').value.trim();
+  const owner=document.getElementById('f-owner').value;
   const dataType=document.getElementById('f-type').value;
   const hasTarget=document.getElementById('f-has-target').checked;
   const target=hasTarget&&dataType!=='yes_no'?parseFloat(document.getElementById('f-target').value)||0:null;
