@@ -1082,13 +1082,25 @@ function exportTodayPDF(){
   const todayDate=new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const recordedTable=document.getElementById('today-recorded-table');
   const pendingTable=document.getElementById('today-pending-table');
-  let content=`<div style="font-family:Arial,sans-serif;padding:15px;">
-    <h1 style="color:#1e40af;margin:0 0 10px 0;">Today's KPI Report</h1>
-    <p style="color:#64748b;margin:0 0 15px 0;font-size:12px;">${todayDate}</p>`;
-  if(recordedTable)content+=`<h3 style="color:#16a34a;margin:0 0 10px 0;">✓ Submitted Today</h3>${recordedTable.outerHTML}`;
-  if(pendingTable)content+=`<h3 style="color:#d97706;margin:15px 0 10px 0;">⚠ Pending</h3>${pendingTable.outerHTML}`;
+  let content=`<div style="font-family:Arial,sans-serif;padding:12px;font-size:8px;">
+    <h1 style="color:#1e40af;margin:0 0 6px 0;font-size:14px;">Today's KPI Report</h1>
+    <p style="color:#64748b;margin:0 0 8px 0;font-size:9px;">${todayDate}</p>`;
+  if(recordedTable){
+    let html=recordedTable.outerHTML;
+    html=html.replace(/<table/g,'<table style="width:100%;border-collapse:collapse;font-size:8px;"');
+    html=html.replace(/<th/g,'<th style="padding:4px 6px;font-size:8px;"');
+    html=html.replace(/<td/g,'<td style="padding:4px 6px;font-size:8px;"');
+    content+=`<h3 style="color:#16a34a;margin:0 0 6px 0;font-size:11px;font-weight:bold;">✓ Submitted Today</h3>${html}`;
+  }
+  if(pendingTable){
+    let html=pendingTable.outerHTML;
+    html=html.replace(/<table/g,'<table style="width:100%;border-collapse:collapse;font-size:8px;"');
+    html=html.replace(/<th/g,'<th style="padding:4px 6px;font-size:8px;"');
+    html=html.replace(/<td/g,'<td style="padding:4px 6px;font-size:8px;"');
+    content+=`<h3 style="color:#d97706;margin:8px 0 6px 0;font-size:11px;font-weight:bold;">⚠ Pending</h3>${html}`;
+  }
   content+='</div>';
-  const opt={margin:10,filename:`kpi-today-report.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};
+  const opt={margin:[5,5,5,5],filename:`kpi-today-report.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,dpi:192},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};
   html2pdf().set(opt).from(content).save();
   toast('PDF exported successfully!');
 }
@@ -1270,21 +1282,29 @@ function renderDateReport(){
 function exportDateReportPDF(){
   const reportDate=new Date(selectedReportDate).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const owners=['Devendra','Juhi','Prakash','Krishna','Rahul'];
-  let content=`<div style="font-family:Arial,sans-serif;padding:15px;">
-    <h1 style="color:#1e40af;margin:0 0 10px 0;">KPI Report - ${reportDate}</h1>
-    <p style="color:#64748b;margin:0 0 15px 0;font-size:12px;">Date-wise KPI Report by Owner</p>`;
+  let content=`<div style="font-family:Arial,sans-serif;padding:12px;font-size:8px;">
+    <h1 style="color:#1e40af;margin:0 0 6px 0;font-size:14px;">KPI Report - ${reportDate}</h1>
+    <p style="color:#64748b;margin:0 0 8px 0;font-size:9px;">Date-wise KPI Report by Owner</p>`;
   owners.forEach(owner=>{
     const table=document.getElementById('date-table-'+owner);
     if(table){
-      content+=`<h3 style="color:#374151;margin:15px 0 10px 0;font-weight:bold;">${owner}</h3>${table.outerHTML}`;
+      let html=table.outerHTML;
+      html=html.replace(/<table/g,'<table style="width:100%;border-collapse:collapse;font-size:8px;"');
+      html=html.replace(/<th/g,'<th style="padding:4px 6px;font-size:8px;"');
+      html=html.replace(/<td/g,'<td style="padding:4px 6px;font-size:8px;"');
+      content+=`<h3 style="color:#374151;margin:8px 0 5px 0;font-size:11px;font-weight:bold;">${owner}</h3>${html}`;
     }
   });
   const unownedTable=document.getElementById('date-table-Other');
   if(unownedTable){
-    content+=`<h3 style="color:#374151;margin:15px 0 10px 0;font-weight:bold;">Other / Unassigned</h3>${unownedTable.outerHTML}`;
+    let html=unownedTable.outerHTML;
+    html=html.replace(/<table/g,'<table style="width:100%;border-collapse:collapse;font-size:8px;"');
+    html=html.replace(/<th/g,'<th style="padding:4px 6px;font-size:8px;"');
+    html=html.replace(/<td/g,'<td style="padding:4px 6px;font-size:8px;"');
+    content+=`<h3 style="color:#374151;margin:8px 0 5px 0;font-size:11px;font-weight:bold;">Other / Unassigned</h3>${html}`;
   }
   content+='</div>';
-  const opt={margin:10,filename:`kpi-report-${selectedReportDate}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};
+  const opt={margin:[5,5,5,5],filename:`kpi-report-${selectedReportDate}.pdf`,image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,dpi:192},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}};
   html2pdf().set(opt).from(content).save();
   toast('PDF exported successfully!');
 }
