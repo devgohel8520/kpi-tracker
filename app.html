@@ -144,13 +144,9 @@ tailwind.config = {
 
     <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
       <div class="text-blue-400 text-xs font-semibold uppercase tracking-wider px-3 pb-2 pt-1">Main</div>
-      <a href="#" onclick="return navigate('dashboard')" id="nav-dashboard" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-200 transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2zm11-4h4a2 2 0 012 2v3M3 13h18"/></svg>
-        Dashboard
-      </a>
       <a href="#" onclick="return navigate('outcomes')" id="nav-outcomes" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-200 transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0a2 2 0 002-2v-6a2 2 0 00-2-2h-2a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2z"/></svg>
-        Outcomes
+        Dashboard
       </a>
       <a href="#" onclick="return navigate('kpi-list')" id="nav-kpi-list" class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-blue-200 transition-colors">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
@@ -246,9 +242,8 @@ function closeSidebar(){
 // ─────────────────────────────────────────────────────
 //  ROUTING
 // ─────────────────────────────────────────────────────
-let currentView='dashboard';
+let currentView='outcomes';
 let editingKPIId=null;
-let dashPeriod='monthly';
 let outcomePeriod='alltime';
 let histKPIFilter='';
 let histDateFrom=new Date().toISOString().slice(0,10);
@@ -283,8 +278,7 @@ function renderPage(){
   Object.keys(chartInstances).forEach(k=>destroyChart(k));
   chartInstances={};
   const titles={
-    dashboard:['Dashboard','Performance overview across all KPIs'],
-    outcomes:['Outcomes','Real performance results and achievement metrics'],
+    outcomes:['Dashboard','Real performance results and achievement metrics'],
     'kpi-list':['My KPIs','Manage and monitor your key performance indicators'],
     'create-kpi':['Create KPI','Define a new key performance indicator'],
     'record-entry':['Record Entry','Log values for your KPIs'],
@@ -299,7 +293,6 @@ function renderPage(){
   document.getElementById('header-date').textContent=new Date().toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
 
   const views={
-    dashboard:renderDashboard,
     outcomes:renderOutcomes,
     'kpi-list':renderKPIList,
     'create-kpi':renderCreateKPI,
@@ -315,255 +308,6 @@ function renderPage(){
 // ─────────────────────────────────────────────────────
 //  DASHBOARD VIEW
 // ─────────────────────────────────────────────────────
-function renderDashboard(){
-  const pc=document.getElementById('page-content');
-  const kpis=App.kpis;
-  const records=App.records;
-  const{start,end}=getDateRange(dashPeriod);
-
-  // Stats
-  const totalKPIs=kpis.length;
-  const activeKPIs=kpis.filter(k=>k.isActive).length;
-  const periodRecords=records.filter(r=>{const d=new Date(r.date+'T00:00:00');return d>=start&&d<=end;});
-  const todayRecs=records.filter(r=>r.date===App.todayStr());
-
-  // KPI achievement summary
-  let onTarget=0,nearTarget=0,offTarget=0,noTarget=0;
-  kpis.forEach(k=>{
-    const lr=App.getLatestRecord(k.id);
-    if(!lr){noTarget++;return;}
-    const pct=achievementPct(k,lr.value);
-    if(pct===null)noTarget++;
-    else if(pct>=100)onTarget++;
-    else if(pct>=75)nearTarget++;
-    else offTarget++;
-  });
-
-  const periodBtns=['daily','weekly','monthly','quarterly','yearly'].map(p=>`
-    <button onclick="dashPeriod='${p}';renderDashboard();"
-      class="period-btn px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-blue-50 transition-colors capitalize ${dashPeriod===p?'active':''}">${p.charAt(0).toUpperCase()+p.slice(1)}</button>
-  `).join('');
-
-  pc.innerHTML=`
-    <!-- Period Selector -->
-    <div class="flex items-center gap-2 mb-6 flex-wrap">
-      <span class="text-sm font-medium text-slate-600 mr-1">Period:</span>
-      ${periodBtns}
-    </div>
-
-    <!-- Stat Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="stat-card">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total KPIs</span>
-          <div class="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10"/></svg>
-          </div>
-        </div>
-        <div class="text-3xl font-bold text-slate-800">${totalKPIs}</div>
-        <div class="text-sm text-slate-500 mt-1">${activeKPIs} active</div>
-      </div>
-      <div class="stat-card">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Records (Period)</span>
-          <div class="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-        </div>
-        <div class="text-3xl font-bold text-slate-800">${periodRecords.length}</div>
-        <div class="text-sm text-slate-500 mt-1">${todayRecs.length} today</div>
-      </div>
-      <div class="stat-card">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">On Target</span>
-          <div class="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-          </div>
-        </div>
-        <div class="text-3xl font-bold text-slate-800">${onTarget}</div>
-        <div class="text-sm text-slate-500 mt-1">${nearTarget} near target</div>
-      </div>
-      <div class="stat-card">
-        <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Off Target</span>
-          <div class="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/></svg>
-          </div>
-        </div>
-        <div class="text-3xl font-bold text-slate-800">${offTarget}</div>
-        <div class="text-sm text-slate-500 mt-1">${noTarget} no target set</div>
-      </div>
-    </div>
-
-    <!-- KPI Status Grid + Chart -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-      <!-- KPI Status Cards -->
-      <div class="lg:col-span-1">
-        <div class="flex items-center justify-between mb-2">
-          <h2 class="font-semibold text-slate-700">KPI Status</h2>
-          <span class="text-xs text-slate-400">Latest values</span>
-        </div>
-        <div class="space-y-3 overflow-y-auto max-h-[400px]">
-        ${kpis.length===0?`<div class="empty-state bg-white rounded-xl border border-slate-200 py-10"><svg class="w-10 h-10 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2"/></svg><p class="text-slate-400 text-sm">No KPIs created yet</p><button onclick="navigate('create-kpi')" class="mt-3 btn-primary text-xs px-4 py-2">Create First KPI</button></div>`:
-        kpis.map(k=>{
-          const lr=App.getLatestRecord(k.id);
-          const pct=lr?achievementPct(k,lr.value):null;
-          const st=statusLabel(pct);
-          const recs=getRecordsInRange(k.id,start,end);
-          return `<div class="kpi-card bg-white border border-slate-200 rounded-xl p-4 cursor-pointer" onclick="showKPIChart('${k.id}')">
-            <div class="flex items-start justify-between gap-2 mb-2">
-              <div class="font-semibold text-slate-800 text-sm leading-tight">${esc(k.title)}</div>
-              <span class="badge ${st.cls} flex-shrink-0">${st.label}</span>
-            </div>
-            <div class="flex items-center gap-4 text-xs text-slate-500 mb-3">
-              <span class="badge ${typeBadgeClass(k.dataType)}">${typeLabel(k.dataType)}</span>
-              <span>${repeatLabel(k)}</span>
-            </div>
-            ${lr?`<div class="flex items-end justify-between">
-              <div>
-                <div class="text-2xl font-bold text-slate-800">${fmtVal(k,lr.value)}</div>
-                ${k.hasTarget?`<div class="text-xs text-slate-400">Target: ${fmtVal(k,k.target)}</div>`:''}
-              </div>
-              <div class="text-right">
-                <div class="text-xs text-slate-400">${recs.length} records</div>
-                <div class="text-xs text-slate-400">${fmtDate(lr.date)}</div>
-              </div>
-            </div>
-            ${k.hasTarget&&pct!==null?`<div class="progress-bar mt-2"><div class="progress-fill" style="width:${Math.min(pct,100)}%;background:${pctColor(pct)};"></div></div><div class="text-xs text-right mt-1" style="color:${pctColor(pct)};">${pct.toFixed(0)}%</div>`:''}`:
-            `<div class="text-sm text-slate-400 italic">No records yet</div>`}
-          </div>`;
-        }).join('')}
-      </div>
-      </div>
-
-      <!-- Chart Area -->
-      <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-5">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-semibold text-slate-700" id="chart-title">Overview Chart</h2>
-          <span class="text-xs text-slate-400">Click a KPI card to see its trend</span>
-        </div>
-        <div id="overview-chart-wrap" class="chart-container">
-          <canvas id="overview-chart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Records -->
-    <div class="bg-white border border-slate-200 rounded-xl p-5">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="font-semibold text-slate-700">Recent Activity</h2>
-        <button onclick="navigate('history')" class="text-sm text-blue-600 hover:underline">View all →</button>
-      </div>
-      ${records.length===0?`<div class="empty-state py-8"><p class="text-slate-400 text-sm">No records yet. <button onclick="navigate('record-entry')" class="text-blue-600 underline">Record your first entry.</button></p></div>`:
-      `<div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead><tr>
-            <th class="text-left px-3 py-2 rounded-l-lg">KPI</th>
-            <th class="text-left px-3 py-2">Value</th>
-            <th class="text-left px-3 py-2">Date</th>
-            <th class="text-left px-3 py-2">Remarks</th>
-            <th class="text-right px-3 py-2 rounded-r-lg">Status</th>
-          </tr></thead>
-          <tbody>
-            ${[...records].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,8).map(r=>{
-              const k=App.getKPIById(r.kpiId);
-              if(!k)return '';
-              const pct=achievementPct(k,r.value);
-              const st=statusLabel(pct);
-              return `<tr class="border-t border-slate-100">
-                <td class="px-3 py-3 font-medium text-slate-800">${esc(k.title)}</td>
-                <td class="px-3 py-3 font-semibold text-blue-700">${fmtVal(k,r.value)}</td>
-                <td class="px-3 py-3 text-slate-500">${fmtDate(r.date)}</td>
-                <td class="px-3 py-3 text-slate-500 max-w-xs truncate">${esc(r.remarks||'—')}</td>
-                <td class="px-3 py-3 text-right"><span class="badge ${st.cls}">${st.label}</span></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>`}
-    </div>
-  `;
-
-  // Render overview chart
-  renderOverviewChart(kpis,start,end);
-}
-
-function renderOverviewChart(kpis,start,end){
-  destroyChart('overview-chart');
-  const canvas=document.getElementById('overview-chart');
-  if(!canvas||kpis.length===0)return;
-  const datasets=[];
-  const colors=['#2563eb','#16a34a','#d97706','#dc2626','#7c3aed','#0891b2','#db2777'];
-  kpis.slice(0,7).forEach((k,i)=>{
-    if(k.dataType==='yes_no')return;
-    const recs=getRecordsInRange(k.id,start,end);
-    if(recs.length<2)return;
-    datasets.push({
-      label:k.title,
-      data:recs.map(r=>({x:r.date,y:parseFloat(r.value)})),
-      borderColor:colors[i%colors.length],
-      backgroundColor:colors[i%colors.length]+'20',
-      borderWidth:2,fill:false,tension:0.3,pointRadius:3,
-    });
-  });
-  if(!datasets.length){
-    const ctx=canvas.getContext('2d');
-    ctx.font='14px sans-serif';ctx.fillStyle='#94a3b8';ctx.textAlign='center';
-    ctx.fillText('Record at least 2 entries per KPI to see trend charts',canvas.width/2,100);
-    return;
-  }
-  chartInstances['overview-chart']=new Chart(canvas,{
-    type:'line',
-    data:{datasets},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      scales:{x:{type:'time'?'category':'category',ticks:{maxTicksLimit:8,font:{size:11}}},y:{ticks:{font:{size:11}}}},
-      plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
-      interaction:{mode:'index',intersect:false}
-    }
-  });
-}
-
-function showKPIChart(kpiId){
-  const k=App.getKPIById(kpiId);
-  if(!k)return;
-  const recs=App.getRecordsByKPI(kpiId);
-  const chartTitle=document.getElementById('chart-title');
-  if(chartTitle)chartTitle.textContent=k.title+' — Trend';
-  destroyChart('overview-chart');
-  const canvas=document.getElementById('overview-chart');
-  if(!canvas||recs.length<2){
-    if(canvas){const ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);ctx.font='14px sans-serif';ctx.fillStyle='#94a3b8';ctx.textAlign='center';ctx.fillText('Need at least 2 records to show trend',canvas.width/2,100);}
-    return;
-  }
-  if(k.dataType==='yes_no'){
-    chartInstances['overview-chart']=new Chart(canvas,{
-      type:'bar',
-      data:{
-        labels:recs.map(r=>r.date),
-        datasets:[{label:'Yes/No',data:recs.map(r=>r.value?1:0),backgroundColor:recs.map(r=>r.value?'#16a34a':'#dc2626'),borderRadius:4}]
-      },
-      options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:1,ticks:{callback:v=>v?'Yes':'No'}}},plugins:{legend:{display:false}}}
-    });
-    return;
-  }
-  const color='#2563eb';
-  const data={
-    labels:recs.map(r=>r.date),
-    datasets:[{
-      label:k.title,data:recs.map(r=>parseFloat(r.value)),
-      borderColor:color,backgroundColor:color+'20',fill:true,tension:0.3,borderWidth:2.5,pointRadius:4,pointBackgroundColor:color
-    }]
-  };
-  if(k.hasTarget&&k.target){
-    data.datasets.push({label:'Target',data:recs.map(()=>parseFloat(k.target)),borderColor:'#f59e0b',borderDash:[6,3],borderWidth:1.5,fill:false,pointRadius:0,tension:0});
-  }
-  chartInstances['overview-chart']=new Chart(canvas,{
-    type:'line',data,
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},interaction:{mode:'index',intersect:false}}
-  });
-}
-
 function renderOutcomes(){
   const pc=document.getElementById('page-content');
   const kpis=App.kpis.filter(k=>k.isActive);
