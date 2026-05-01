@@ -333,8 +333,11 @@ function renderOutcomes(){
   const kpiOutcomes=kpis.map(k=>{
     const periodKPIRecs=periodRecs.filter(r=>r.kpiId===k.id);
     const lr=periodKPIRecs.length?periodKPIRecs.reduce((a,b)=>new Date(b.date)>new Date(a.date)?b:a):null;
-    const pct=lr?achievementPct(k,lr.value):null;
     const avgVal=periodKPIRecs.length?periodKPIRecs.reduce((s,r)=>s+parseFloat(r.value),0)/periodKPIRecs.length:null;
+    // For "All Time", use average achievement; otherwise use latest record
+    const useAvg=outcomePeriod==='alltime';
+    const effectiveVal=useAvg?avgVal:(lr?lr.value:null);
+    const pct=effectiveVal!==null?achievementPct(k,parseFloat(effectiveVal)):null;
     const avgPct=avgVal!==null&&k.hasTarget&&k.target?achievementPct(k,avgVal):null;
     return {...k,latestRecord:lr,achievement:pct,avgValue:avgVal,avgAchievement:avgPct,recordCount:periodKPIRecs.length};
   });
