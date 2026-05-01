@@ -249,6 +249,7 @@ function closeSidebar(){
 let currentView='dashboard';
 let editingKPIId=null;
 let dashPeriod='monthly';
+let outcomePeriod='alltime';
 let histKPIFilter='';
 let histDateFrom=new Date().toISOString().slice(0,10);
 let histDateTo=new Date().toISOString().slice(0,10);
@@ -568,14 +569,22 @@ function renderOutcomes(){
   const kpis=App.kpis.filter(k=>k.isActive);
   const records=App.records;
   const owners=['Devendra','Juhi','Prakash','Krishna','Rahul'];
+  const{start,end}=getDateRange(outcomePeriod);
+  const periodRecs=records.filter(r=>{const d=new Date(r.date+'T00:00:00');return d>=start&&d<=end;});
+
+  const periodBtns=['alltime','daily','weekly','monthly','quarterly','yearly'].map(p=>{
+    const labels={alltime:'All Time',daily:'Daily',weekly:'Weekly',monthly:'Monthly',quarterly:'Quarterly',yearly:'Yearly'};
+    return `<button onclick="outcomePeriod='${p}';renderOutcomes();"
+      class="period-btn px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 text-slate-600 hover:bg-blue-50 transition-colors capitalize ${outcomePeriod===p?'active':''}">${labels[p]}</button>`;
+  }).join('');
 
   const kpiOutcomes=kpis.map(k=>{
-    const lr=App.getLatestRecord(k.id);
+    const periodKPIRecs=periodRecs.filter(r=>r.kpiId===k.id);
+    const lr=periodKPIRecs.length?periodKPIRecs.reduce((a,b)=>new Date(b.date)>new Date(a.date)?b:a):null;
     const pct=lr?achievementPct(k,lr.value):null;
-    const allRecs=App.getRecordsByKPI(k.id);
-    const avgVal=allRecs.length?allRecs.reduce((s,r)=>s+parseFloat(r.value),0)/allRecs.length:null;
+    const avgVal=periodKPIRecs.length?periodKPIRecs.reduce((s,r)=>s+parseFloat(r.value),0)/periodKPIRecs.length:null;
     const avgPct=avgVal!==null&&k.hasTarget&&k.target?achievementPct(k,avgVal):null;
-    return {...k,latestRecord:lr,achievement:pct,avgValue:avgVal,avgAchievement:avgPct,recordCount:allRecs.length};
+    return {...k,latestRecord:lr,achievement:pct,avgValue:avgVal,avgAchievement:avgPct,recordCount:periodKPIRecs.length};
   });
 
   const onTarget=kpiOutcomes.filter(k=>k.achievement!==null&&k.achievement>=100);
@@ -599,6 +608,11 @@ function renderOutcomes(){
 
   pc.innerHTML=`
     <div class="max-w-6xl mx-auto space-y-6">
+      <div class="flex items-center gap-2 mb-2 flex-wrap">
+        <span class="text-sm font-medium text-slate-600 mr-1">Period:</span>
+        ${periodBtns}
+      </div>
+
       <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div class="bg-white border border-slate-200 rounded-xl p-4">
           <div class="text-3xl font-bold text-slate-800">${kpis.length}</div>
@@ -687,7 +701,7 @@ function renderOutcomes(){
       <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h3 class="font-semibold text-slate-800">All KPI Outcomes</h3>
-          <span class="text-sm text-slate-500">${withRecords.length} recorded | ${withoutRecords.length} not recorded</span>
+          <span class="text-sm text-slate-500">${outcomePeriod==='alltime'?'All Time':outcomePeriod==='daily'?'Today':outcomePeriod==='weekly'?'This Week':outcomePeriod==='monthly'?'This Month':outcomePeriod==='quarterly'?'This Quarter':'This Year'} — ${withRecords.length} recorded | ${withoutRecords.length} not recorded</span>
         </div>
         <table class="w-full text-sm">
           <thead><tr class="bg-slate-50">

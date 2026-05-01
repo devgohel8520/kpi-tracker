@@ -93,6 +93,7 @@ function getDateRange(period) {
   const now = new Date();
   const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
   switch (period) {
+    case 'alltime': return { start: new Date(2000, 0, 1), end: new Date(y, m + 1, 31) };
     case 'daily': return { start: new Date(y, m, d), end: new Date(y, m, d) };
     case 'weekly': { const ws = new Date(y, m, d - now.getDay()); const we = new Date(ws); we.setDate(ws.getDate() + 6); return { start: ws, end: we }; }
     case 'monthly': return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0) };
